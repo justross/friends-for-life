@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    "TTT",
+    "   "
+  ],
+  "key": {
+    "T":{
+      "tag": "minecraft:terracotta"
+    }
+  },
+  "result": {
+    "item": "rainbowbridge:ocarina"
+  }
+}

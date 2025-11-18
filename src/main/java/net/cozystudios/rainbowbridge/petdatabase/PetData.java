@@ -209,7 +209,7 @@ public class PetData {
      * @param x        - Position to spawn entity
      * @param y
      * @param z
-     * @return
+     * @return The recreated TameableEntity, or null if recreation failed
      */
     @Nullable
     public TameableEntity recreateEntity(MinecraftServer server, RegistryKey<World> worldKey, int x, int y,

@@ -6,9 +6,7 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
-import net.cozystudios.rainbowbridge.RainbowBridgeNet;
 import net.cozystudios.rainbowbridge.RaycastHelper;
-import net.cozystudios.rainbowbridge.packets.HomeSetRequestPacket;
 import net.cozystudios.rainbowbridge.petdatabase.PetData;
 import net.cozystudios.rainbowbridge.petdatabase.PetTracker;
 import net.minecraft.client.MinecraftClient;
@@ -21,6 +19,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -87,7 +86,11 @@ public class RainbowCollarItem extends Item {
                 ? new Identifier(item.getNbt().getString("HomeDim"))
                 : null;
 
-        RainbowBridgeNet.CHANNEL.clientHandle().send(new HomeSetRequestPacket(pd.uuid, pos, dim));
+        if (pos != null && dim != null) {
+            pd.homePosition = pos;
+            pd.homeDimension = RegistryKey.of(RegistryKeys.WORLD, dim);
+        }
+
         user.getWorld().playSound(
                 null, // null = broadcast to nearby players
                 tame.getBlockPos(), // sound position

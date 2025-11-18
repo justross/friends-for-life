@@ -67,27 +67,48 @@ public class RainbowOcarinaItem extends Item {
                         : null;
                 OcarinaRegistry registry = OcarinaRegistry.get(world.getServer());
                 UUID petUuid = registry.getPetForOcarina(ocarinaUuid);
+                PetTracker tracker = PetTracker.get(world.getServer());
+                PetData petData = tracker.get(petUuid);
 
                 // Summon bound pet
                 if (!player.isSneaking() && petUuid != null) {
-                    PetTracker tracker = PetTracker.get(world.getServer());
-                    PetData pd = tracker.get(petUuid);
-                    if (pd != null) {
+                    if (petData != null) {
                         BlockPos pos = RaycastHelper.getSafeBlock(player);
                         TaskScheduler.schedule(() -> {
-                            pd.recreateEntity(
+                            var tame = petData.recreateEntity(
                                     world.getServer(),
                                     world.getRegistryKey(),
                                     pos.getX(),
                                     pos.getY(),
                                     pos.getZ());
-                            var pdh = pd.getEntity(world.getServer()).join();
-                            if (pdh != null && pdh.entity() != null) {
-                                TameableWanderHelper.stopWandering(pdh.entity());
+                            if (tame != null) {
+                                TameableWanderHelper.stopWandering(tame);
                             }
                         }, 30);
                     }
 
+                }
+
+                // Send pet home if using using ocarina on assigned pet
+                if (player.isSneaking() && registry.getPetForOcarina(ocarinaUuid) != null &&
+                        registry.getPetForOcarina(ocarinaUuid).equals(petData.uuid)) {
+
+                    // Get homeblock from pet data, or fall back to default homeblock
+                    HomeBlockHandle hbh = petData.getHomeBlock();
+                    if (hbh == null) {
+                        hbh = HomeBlock.get(world.getServer()).getHome(world.getServer(), player.getUuid());
+                    }
+                    if (hbh != null) {
+                        var tame = petData.recreateEntity(
+                                world.getServer(),
+                                world.getRegistryKey(),
+                                hbh.pos().getX(),
+                                hbh.pos().getY(),
+                                hbh.pos().getZ());
+                        if (tame != null) {
+                            TameableWanderHelper.makeTameableWander(tame);
+                        }
+                    }
                 }
             }
 
@@ -114,57 +135,34 @@ public class RainbowOcarinaItem extends Item {
     /** Handles interactions from Rainbow Pet entity callback */
     public ActionResult useOcarinaFromPet(World world, PlayerEntity player, ItemStack stack, PetData petData,
             TameableEntity tame) {
-        NbtCompound nbt = stack.getOrCreateNbt();
-        UUID ocarinaUuid = nbt.contains("ocarinaUuid")
-                ? UUID.fromString(nbt.getString("ocarinaUuid"))
-                : null;
-        OcarinaRegistry registry = OcarinaRegistry.get(world.getServer());
-        UUID petUuid = registry.getPetForOcarina(ocarinaUuid);
-
-        // Bind the ocarina to pet if not already assigned to it
-        if (player.isSneaking() && (petUuid == null || !petUuid.equals(petData.uuid))) {
-
-            UUID ocarinaId = nbt.getString("ocarinaUuid") != ""
+        if (!player.getItemCooldownManager().isCoolingDown(this)) {
+            NbtCompound nbt = stack.getOrCreateNbt();
+            UUID ocarinaUuid = nbt.contains("ocarinaUuid")
                     ? UUID.fromString(nbt.getString("ocarinaUuid"))
                     : null;
-            // Assign uuid to ocarina if it doesn't have one
-            if (!nbt.contains("ocarinaUuid")) {
-                ocarinaId = UUID.randomUUID();
-                nbt.putString("ocarinaUuid", ocarinaId.toString());
-            }
+            OcarinaRegistry registry = OcarinaRegistry.get(world.getServer());
+            UUID petUuid = registry.getPetForOcarina(ocarinaUuid);
 
-            registry.register(ocarinaId, petData.uuid, world.getServer());
+            if (player.isSneaking()) {
 
-            player.sendMessage(Text.translatable("message.rainbowbridge.ocarina_bound"), true);
-            return ActionResult.SUCCESS;
-        }
+                // Bind the ocarina to pet if not already assigned to it
+                if ((petUuid == null || !petUuid.equals(petData.uuid))) {
 
-        if (!player.getItemCooldownManager().isCoolingDown(this)) {
-            // Send pet home if using using ocarina on assigned pet
-            if (player.isSneaking() && registry.getPetForOcarina(ocarinaUuid) != null &&
-                    registry.getPetForOcarina(ocarinaUuid).equals(petData.uuid)) {
+                    UUID ocarinaId = nbt.getString("ocarinaUuid") != ""
+                            ? UUID.fromString(nbt.getString("ocarinaUuid"))
+                            : null;
+                    // Assign uuid to ocarina if it doesn't have one
+                    if (!nbt.contains("ocarinaUuid")) {
+                        ocarinaId = UUID.randomUUID();
+                        nbt.putString("ocarinaUuid", ocarinaId.toString());
+                    }
 
-                // Get homeblock from pet data, or fall back to default homeblock
-                HomeBlockHandle hbh = petData.getHomeBlock();
-                if (hbh == null) {
-                    hbh = HomeBlock.get(world.getServer()).getHome(world.getServer(), player.getUuid());
-                }
-                if (hbh != null) {
-                    TameableWanderHelper.makeTameableWander(tame);
-                    petData.recreateEntity(
-                            world.getServer(),
-                            world.getRegistryKey(),
-                            hbh.pos().getX(),
-                            hbh.pos().getY(),
-                            hbh.pos().getZ());
-                    player.playSound(
-                            RainbowBridgeSounds.OCARINA_TWO,
-                            SoundCategory.PLAYERS,
-                            .7f,
-                            1.0f);
+                    registry.register(ocarinaId, petData.uuid, world.getServer());
 
-                    player.getItemCooldownManager().set(this, 45);
-                    return ActionResult.PASS;
+                    player.sendMessage(Text.translatable("message.rainbowbridge.ocarina_bound"), true);
+                    return ActionResult.SUCCESS;
+                } else {
+                    return use(world, player, Hand.MAIN_HAND).getResult();
                 }
             }
         }

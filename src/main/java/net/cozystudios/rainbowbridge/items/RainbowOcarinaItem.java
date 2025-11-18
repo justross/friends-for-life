@@ -88,7 +88,6 @@ public class RainbowOcarinaItem extends Item {
                         }, 30);
                     }
 
-                    player.getItemCooldownManager().set(this, 60);
                 }
             }
 
@@ -106,6 +105,7 @@ public class RainbowOcarinaItem extends Item {
                         .7f,
                         1.0f);
             }
+            player.getItemCooldownManager().set(this, 45);
         }
         return TypedActionResult.success(player.getStackInHand(hand));
 
@@ -163,7 +163,7 @@ public class RainbowOcarinaItem extends Item {
                             .7f,
                             1.0f);
 
-                    player.getItemCooldownManager().set(this, 60);
+                    player.getItemCooldownManager().set(this, 45);
                     return ActionResult.PASS;
                 }
             }

@@ -1,16 +1,12 @@
 package net.cozystudios.rainbowbridge;
 
-import net.cozystudios.rainbowbridge.accessors.TameableEntityDecorator;
+import java.util.ArrayList;
+
 import net.cozystudios.rainbowbridge.accessors.MobEntityAccessor;
-import net.cozystudios.rainbowbridge.homeblock.HomeBlock;
+import net.cozystudios.rainbowbridge.accessors.TameableEntityDecorator;
 import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.entity.ai.goal.WanderAroundGoal;
 import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 public class TameableWanderHelper {
 
@@ -42,19 +38,26 @@ public class TameableWanderHelper {
         if (entity instanceof TameableEntityDecorator wanderable) {
             wanderable.rainbowbridge_setForceWander(false);
 
-            // Remove any existing WanderAroundGoal
             try {
                 MobEntityAccessor accessor = (MobEntityAccessor) entity;
 
-                accessor.rainbowbridge_getGoalSelector().getGoals().forEach(prioritizedGoal -> {
+                var goalsToRemove = new ArrayList<Goal>();
+
+                for (var prioritizedGoal : accessor.rainbowbridge_getGoalSelector().getGoals()) {
                     Goal goal = prioritizedGoal.getGoal();
                     if (goal instanceof WanderAroundGoal) {
+                        goalsToRemove.add(goal);
+
                         if (prioritizedGoal.isRunning()) {
                             prioritizedGoal.stop();
                         }
-                        accessor.rainbowbridge_getGoalSelector().remove(goal);
                     }
-                });
+                }
+
+                for (var goal : goalsToRemove) {
+                    accessor.rainbowbridge_getGoalSelector().remove(goal);
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }

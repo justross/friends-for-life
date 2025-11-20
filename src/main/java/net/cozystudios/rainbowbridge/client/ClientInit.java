@@ -102,7 +102,9 @@ public class ClientInit implements ClientModInitializer {
                         for (PetUpdate update : updates) {
                             ClientPetData pet = ClientPetList.getPet(update.petUuid());
                             if (pet != null) {
-                                pet.name = update.name();
+                                if (!pet.name.isEmpty()) {
+                                    pet.name = update.name();
+                                }
                                 pet.position = update.pos().toShortString();
                             }
                         }

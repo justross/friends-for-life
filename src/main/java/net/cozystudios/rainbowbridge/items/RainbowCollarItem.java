@@ -61,6 +61,7 @@ public class RainbowCollarItem extends Item {
                 nbt.putLong("HomePos", pos.asLong());
                 nbt.putString("HomeDim", dim.getValue().toString());
                 stack.setNbt(nbt);
+                player.getInventory().markDirty();
 
                 player.sendMessage(Text.translatable("message.rainbowbridge.home_set"), true);
             }

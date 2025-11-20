@@ -1,4 +1,4 @@
-Binary License for Rainbow Bridge
+Binary License for Friends For Life
 
 This license applies to the compiled mod JAR file (“Binary”).
 

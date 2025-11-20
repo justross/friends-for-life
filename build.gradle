@@ -7,7 +7,7 @@ version = project.mod_version
 group = project.maven_group
 
 sourceSets.main.java.srcDirs += [ 'src/main/generatedJava' ]
-compileJava.options.generatedSourceOutputDirectory = file("${projectDir}/src/main/generatedJava/net/cozystudios/rainbowbridge")
+compileJava.options.generatedSourceOutputDirectory = file("${projectDir}/src/main/generatedJava/net/arcana/friendsforlife")
 
 task sourcesJar(type: Jar) {
     archiveClassifier.set('sources')

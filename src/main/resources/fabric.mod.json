@@ -1,33 +1,33 @@
 {
 	"schemaVersion": 1,
-	"id": "rainbowbridge",
+	"id": "friendsforlife",
 	"version": "${version}",
-	"name": "The Rainbow Bridge",
+	"name": "Friends For Life",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
-		"jjorge",
-		"conbo"
+		"conbo",
+		"jjorge"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/rainbowbridge/icon.png",
+	"icon": "assets/friendsforlife/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"net.cozystudios.rainbowbridge.TheRainbowBridge"
+			"net.arcana.friendsforlife.ModInit"
 		],
         "client": [
-          "net.cozystudios.rainbowbridge.client.ClientInit"
+          "net.arcana.friendsforlife.client.ClientInit"
         ],
 		"fabric-datagen": [
-			"net.cozystudios.rainbowbridge.TheRainbowBridgeDataGenerator"
+			"net.arcana.friendsforlife.DataGenerator"
 		]
 	},
 	"mixins": [
-		"rainbowbridge.mixins.json"
+		"friendsforlife.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.17.2",

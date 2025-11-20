@@ -1,6 +1,0 @@
-{
-  "parent": "block/cube_all",
-  "textures": {
-    "all": "rainbowbridge:block/home_marker"
-  }
-}

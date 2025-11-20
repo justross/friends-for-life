@@ -1,0 +1,14 @@
+{
+  "ocarina": {
+    "category": "neutral",
+    "sounds": [
+      "friendsforlife:ocarina"
+    ]
+  },
+  "ocarinatwo": {
+    "category": "neutral",
+    "sounds": [
+      "friendsforlife:ocarinatwo"
+    ]
+  }
+}

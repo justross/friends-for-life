@@ -31,6 +31,10 @@ import net.minecraft.world.World;
 public class ClientInit implements ClientModInitializer {
     private static KeyBinding openBookKey;
 
+    // Helper record to store the update data safely
+    private record PetUpdate(UUID petUuid, String name, BlockPos pos) {
+    }
+
     @Override
     public void onInitializeClient() {
         HomeBlockRenderer.register();
@@ -78,6 +82,30 @@ public class ClientInit implements ClientModInitializer {
                     // update GUI on the main thread
                     client.execute(() -> {
                         ClientPetList.setPets(pets);
+                    });
+                });
+
+        ClientPlayNetworking.registerGlobalReceiver(RainbowBridgePackets.RESPONSE_PET_UPDATE,
+                (client, handler, buf, responseSender) -> {
+                    List<PetUpdate> updates = new ArrayList<>();
+
+                    while (buf.isReadable()) {
+                        UUID petUuid = buf.readUuid();
+                        String name = buf.readString();
+                        BlockPos pos = buf.readBlockPos();
+
+                        updates.add(new PetUpdate(petUuid, name, pos));
+                    }
+
+                    // Now safe to use in the main thread
+                    client.execute(() -> {
+                        for (PetUpdate update : updates) {
+                            ClientPetData pet = ClientPetList.getPet(update.petUuid());
+                            if (pet != null) {
+                                pet.name = update.name();
+                                pet.position = update.pos().toShortString();
+                            }
+                        }
                     });
                 });
 

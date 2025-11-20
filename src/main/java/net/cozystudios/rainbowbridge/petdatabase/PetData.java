@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -37,8 +38,8 @@ public class PetData {
     public UUID entityUuid;
     public BlockPos position;
     public NbtCompound collar;
-    public final UUID ownerUUID;
-    public final String ownerName;
+    public final UUID ownerUuid;
+    public final String OwnerName;
     public BlockPos homePosition;
     public RegistryKey<World> homeDimension;
     /** The time, in milliseconds, when the pet was tamed */
@@ -57,8 +58,8 @@ public class PetData {
                                                                               // purposes
         this.entityUuid = tame.getUuid();
         this.position = tame.getBlockPos();
-        this.ownerName = player.getEntityName();
-        this.ownerUUID = player.getUuid();
+        this.OwnerName = player.getEntityName();
+        this.ownerUuid = player.getUuid();
         this.collar = collarItem;
         this.entityData = new NbtCompound();
         tame.saveSelfNbt(this.entityData);
@@ -66,13 +67,13 @@ public class PetData {
         this.tameTimestamp = tameDate;
     }
 
-    public PetData(UUID rainbowbridgeUuid, BlockPos pos, UUID ownerUUID, String ownerName, NbtCompound collarItem,
+    public PetData(UUID rainbowbridgeUuid, BlockPos pos, UUID OwnerUuid, String OwnerName, NbtCompound collarItem,
             long tameDate, BlockPos homePosition, RegistryKey<World> homeDimension, NbtCompound entityData) {
         this.uuid = rainbowbridgeUuid;
         this.entityUuid = uuid;
         this.position = pos;
-        this.ownerName = ownerName;
-        this.ownerUUID = ownerUUID;
+        this.OwnerName = OwnerName;
+        this.ownerUuid = OwnerUuid;
         this.collar = collarItem;
         this.tameTimestamp = tameDate;
         this.homeDimension = homeDimension;
@@ -84,8 +85,8 @@ public class PetData {
         NbtCompound tag = new NbtCompound();
         tag.putUuid("RainbowBridgeEntityUUID", uuid);
 
-        tag.putUuid("ownerUUID", ownerUUID);
-        tag.putString("ownerName", ownerName);
+        tag.putUuid("OwnerUuid", ownerUuid);
+        tag.putString("OwnerName", OwnerName);
         tag.put("collarItem", collar);
 
         tag.putInt("x", position.getX());
@@ -104,8 +105,8 @@ public class PetData {
     public static PetData fromNbt(NbtCompound tag) {
         UUID rainbowbridge_uuid = tag.getUuid("RainbowBridgeEntityUUID");
 
-        UUID ownerUUID = tag.getUuid("ownerUUID");
-        String ownerName = tag.getString("ownerName");
+        UUID OwnerUuid = tag.getUuid("OwnerUuid");
+        String OwnerName = tag.getString("OwnerName");
         NbtCompound collarItem = tag.getCompound("collarItem");
 
         BlockPos pos = new BlockPos(tag.getInt("x"), tag.getInt("y"), tag.getInt("z"));
@@ -129,10 +130,10 @@ public class PetData {
 
         NbtCompound entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
 
-        return new PetData(rainbowbridge_uuid, pos, ownerUUID, ownerName, collarItem, tameDate, homePos, homeDim, entityData);
+        return new PetData(rainbowbridge_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim, entityData);
     }
 
-    public void updateEntityData(java.util.function.Consumer<NbtCompound> editor) {
+    public void updateEntityData(Consumer<NbtCompound> editor) {
         if (entityData == null)
             return;
         editor.accept(entityData);
@@ -182,7 +183,7 @@ public class PetData {
             }
         }
 
-        var player = server.getPlayerManager().getPlayer(ownerUUID);
+        var player = server.getPlayerManager().getPlayer(ownerUuid);
         if (player != null) {
 
             NbtCompound left = player.getShoulderEntityLeft();
@@ -232,7 +233,7 @@ public class PetData {
             return null;
 
         // Remove from shoulder
-        ServerPlayerEntity player = server.getPlayerManager().getPlayer(ownerUUID);
+        ServerPlayerEntity player = server.getPlayerManager().getPlayer(ownerUuid);
         if (player != null) {
             NbtCompound left = player.getShoulderEntityLeft();
             NbtCompound right = player.getShoulderEntityRight();

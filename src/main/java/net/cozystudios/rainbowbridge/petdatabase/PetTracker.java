@@ -34,20 +34,20 @@ public class PetTracker extends PersistentState {
     private final Map<UUID, PetData> tracked = new HashMap<>();
     private final Set<UUID> recreated = new HashSet<>(); // Entities that have been recreated and must be removed
 
-    public void addPet(TameableEntity tame, PlayerEntity player, ItemStack item, long tameTimestamp) {
+    public void addPet(TameableEntity tame, ServerPlayerEntity player, ItemStack item, long tameTimestamp) {
         TheRainbowBridge.LOGGER.info("adding new entity to be tracked: " + tame.getName());
         if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUuid()))) {
             NbtCompound collar = new NbtCompound();
             item.writeNbt(collar);
             PetData pd = new PetData(tame, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
-            var petList = PetTracker.serializePetList(player);
-            ServerPlayNetworking.send((ServerPlayerEntity) player, RainbowBridgePackets.RESPONSE_PET_TRACKER, petList);
+            var petList = PetTracker.serializePetList(player.getServer());
+            ServerPlayNetworking.send(player, RainbowBridgePackets.RESPONSE_PET_TRACKER, petList);
         }
     }
 
     public void removePet(MinecraftServer server, UUID uuid) {
-        var player = server.getPlayerManager().getPlayer(tracked.get(uuid).ownerUUID);
+        var player = server.getPlayerManager().getPlayer(tracked.get(uuid).ownerUuid);
         PetData petData = tracked.get(uuid);
         if (petData != null) {
             petData.onRemoved(server);
@@ -57,7 +57,7 @@ public class PetTracker extends PersistentState {
             System.err.println("[RainbowBridge] Could not find player to update pet list for removed pet: " + uuid);
             return;
         }
-        var petList = PetTracker.serializePetList(player);
+        var petList = PetTracker.serializePetList(server);
         ServerPlayNetworking.send((ServerPlayerEntity) player, RainbowBridgePackets.RESPONSE_PET_TRACKER, petList);
     }
 
@@ -88,32 +88,58 @@ public class PetTracker extends PersistentState {
 
     public static List<PetData> getAllForPlayer(PlayerEntity player) {
         return PetTracker.get(player.getServer()).tracked.values().stream()
-                .filter(pet -> pet.ownerUUID.equals(player.getUuid()))
+                .filter(pet -> pet.ownerUuid.equals(player.getUuid()))
                 .toList();
     }
 
-    public static PacketByteBuf serializePetList(PlayerEntity player) {
-        List<PetData> pets = new ArrayList<>(PetTracker.getAllForPlayer(player));
+    public static PacketByteBuf serializePetData(PetData pet, MinecraftServer server) {
+        PacketByteBuf out = new PacketByteBuf(Unpooled.buffer());
+        serializePetData(out, pet, server);
+        return out;
+    }
+
+    private static void serializePetData(PacketByteBuf out, PetData pet, MinecraftServer server) {
+        out.writeUuid(pet.uuid);
+
+        var data = pet.getEntity(server).join();
+        if (data != null && data.entity() != null) {
+            writeEntityData(out, data.entity(), null);
+        } else if (data != null && data.shoulderNbt() != null) {
+            writeEntityData(out, null, data.shoulderNbt());
+        } else {
+            writeEntityData(out, null, pet.getEntityData());
+        }
+
+        out.writeString(pet.position.toShortString());
+        out.writeLong(pet.homePosition != null ? pet.homePosition.asLong() : 0L);
+        out.writeString(pet.homeDimension != null ? pet.homeDimension.getValue().toString() : "");
+    }
+
+    /** Serializes pet list for player */
+    public static PacketByteBuf serializePetList(MinecraftServer server) {
+        List<PetData> pets = new ArrayList<>(PetTracker.get(server).tracked.values());
         pets.sort((a, b) -> Long.compare(a.tameTimestamp, b.tameTimestamp));
 
         PacketByteBuf out = new PacketByteBuf(Unpooled.buffer());
         out.writeInt(pets.size());
 
         for (PetData pet : pets) {
-            out.writeUuid(pet.uuid);
+            serializePetData(out, pet, server);
+            // out.writeUuid(pet.uuid);
 
-            var data = pet.getEntity(player.getServer()).join();
-            if (data != null && data.entity() != null) {
-                writeEntityData(out, data.entity(), null);
-            } else if (data != null && data.shoulderNbt() != null) {
-                writeEntityData(out, null, data.shoulderNbt());
-            } else {
-                writeEntityData(out, null, pet.getEntityData());
-            }
+            // var data = pet.getEntity(player.getServer()).join();
+            // if (data != null && data.entity() != null) {
+            // writeEntityData(out, data.entity(), null);
+            // } else if (data != null && data.shoulderNbt() != null) {
+            // writeEntityData(out, null, data.shoulderNbt());
+            // } else {
+            // writeEntityData(out, null, pet.getEntityData());
+            // }
 
-            out.writeString(pet.position.toShortString());
-            out.writeLong(pet.homePosition != null ? pet.homePosition.asLong() : 0L);
-            out.writeString(pet.homeDimension != null ? pet.homeDimension.getValue().toString() : "");
+            // out.writeString(pet.position.toShortString());
+            // out.writeLong(pet.homePosition != null ? pet.homePosition.asLong() : 0L);
+            // out.writeString(pet.homeDimension != null ?
+            // pet.homeDimension.getValue().toString() : "");
         }
 
         return out;

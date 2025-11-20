@@ -18,18 +18,21 @@
                                         <texture
                                             id="default-home-icon"
                                             texture="rainbowbridge:textures/gui/default_home_icon.png"
-                                            texture-width="12" texture-height="12"
-                                            region-width="12" region-height="12"
+                                            texture-width="10" texture-height="10"
+                                            region-width="10" region-height="10"
                                         >
                                             <tooltip-text>Default home location</tooltip-text>
                                         </texture>
                                         <label id="default-home-label">
                                             <margins>
-                                                <left>2</left>
+                                                <left>4</left>
                                                 <top>2</top>
                                             </margins>
                                         </label>
                                     </children>
+                                    <margins>
+                                        <top>8</top>
+                                    </margins>
                                 </flow-layout>
 
                                 <!-- Pet list -->
@@ -55,7 +58,8 @@
                                     </sizing>
                                     <allow-overflow>true</allow-overflow>
                                     <margins>
-                                        <top>16</top>
+                                        <top>10</top>
+                                        <left>4</left>
                                     </margins>
                                 </scroll>
 
@@ -94,7 +98,7 @@
                                     </positioning>
                                     <margins>
                                         <bottom>0</bottom>
-                                        <right>0</right>
+                                        <right>3</right>
                                     </margins>
 
                                 </button>
@@ -126,8 +130,8 @@
                                                 <vertical method="fixed">50</vertical>
                                             </sizing>
                                             <margins>
-                                                <top>6</top>
-                                                <left>4</left>
+                                                <top>8</top>
+                                                <left>6</left>
                                             </margins>
                                         </stack-layout>
 
@@ -145,7 +149,7 @@
                                                             texture-width="84" texture-height="63" />
                                                     </renderer>
                                                     <margins>
-                                                        <bottom>4</bottom>
+                                                        <bottom>2</bottom>
                                                     </margins>
                                                 </button>
 
@@ -165,8 +169,8 @@
                                             </children>
 
                                             <margins>
-                                                <top>8</top>
-                                                <left>8</left>
+                                                <top>10</top>
+                                                <left>12</left>
                                             </margins>
                                         </flow-layout>
 
@@ -186,13 +190,13 @@
                                         </texture>
                                         <label id="pet-position-label">
                                             <margins>
-                                                <left>2</left>
-                                                <top>2</top>
+                                                <top>0</top>
+                                                <left>4</left>
                                             </margins>
                                         </label>
                                     </children>
                                     <margins>
-                                        <top>7</top>
+                                        <top>6</top>
                                         <left>5</left>
                                     </margins>
                                     <padding>
@@ -213,8 +217,8 @@
                                         </texture>
                                         <label id="home-position-label">
                                             <margins>
-                                                <left>2</left>
-                                                <top>2</top>
+                                                <top>1</top>
+                                                <left>3</left>
                                             </margins>
                                         </label>
                                     </children>
@@ -226,12 +230,12 @@
 
                                 <!-- No pets found text -->
                                 <label id="no-pets-message">
-                                    <text>You haven't registered any pets yet. Equip a Collar on a pet to register it.</text>
+                                    <text>No registered pets. Equip a Collar on a pet to register one.</text>
                                     <sizing>
                                         <horizontal method="fill">100</horizontal>
                                     </sizing>
                                     <margins>
-                                        <top>12</top>
+                                        <top>4</top>
                                     </margins>
                                 </label>
 

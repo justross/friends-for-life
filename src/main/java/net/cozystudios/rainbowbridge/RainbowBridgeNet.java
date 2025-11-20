@@ -8,6 +8,7 @@ import net.cozystudios.rainbowbridge.packets.HomeRequestPacket;
 import net.cozystudios.rainbowbridge.packets.HomeSetRequestPacket;
 import net.cozystudios.rainbowbridge.packets.HomeUpdatePacket;
 import net.cozystudios.rainbowbridge.packets.OcarinaUpdatePacket;
+import net.cozystudios.rainbowbridge.packets.PetDataRequestPacket;
 import net.cozystudios.rainbowbridge.packets.RespawnUpdatePacket;
 import net.cozystudios.rainbowbridge.petdatabase.PetData;
 import net.cozystudios.rainbowbridge.petdatabase.PetTracker;

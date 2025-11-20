@@ -21,6 +21,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.OrderedText;
@@ -68,7 +69,7 @@ public class RainbowCollarItem extends Item {
         return TypedActionResult.success(stack);
     }
 
-    public ActionResult applyCollar(ItemStack item, PlayerEntity user, TameableEntity tame) {
+    public ActionResult applyCollar(ItemStack item, ServerPlayerEntity user, TameableEntity tame) {
         // maybe a config setting here or something
         tame.setInvulnerable(true);
 

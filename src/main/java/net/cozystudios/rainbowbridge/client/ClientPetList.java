@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.cozystudios.rainbowbridge.petdatabase.PetListUpdateEvents;
+import net.minecraft.client.network.ClientPlayerEntity;
 
 public class ClientPetList {
 
@@ -36,6 +37,12 @@ public class ClientPetList {
 
     public static synchronized List<ClientPetData> getAllPets() {
         return List.copyOf(pets.values());
+    }
+
+    public static synchronized List<ClientPetData> getAllForPlayer(ClientPlayerEntity player) {
+        return List.copyOf(pets.values().stream()
+                .filter(pet -> pet.getOwnerUuid().equals(player.getUuid()))
+                .toList());
     }
 
     public static ClientPetData getPet(UUID petUuid) {

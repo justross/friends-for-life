@@ -22,6 +22,7 @@ import net.cozystudios.rainbowbridge.RainbowBridgePackets;
 import net.cozystudios.rainbowbridge.homeblock.HomeBlockUpdateEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -70,7 +71,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         // Listen for default home block update
         homeUpdateListener = (uuid, newHomePos, newDim) -> {
-            if (uuid.equals(MinecraftClient.getInstance().player.getUuid())) {
+            ClientPlayerEntity player = MinecraftClient.getInstance().player;
+            if (uuid.equals(player.getUuid())) {
                 if (currentPet != null && currentPet.homePosition == null) {
                     homeLabel.text(Text.literal(newHomePos.toShortString()));
                     homeButton.visible = true;
@@ -107,8 +109,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         client.execute(() ->
 
         {
-
-            List<ClientPetData> pets = ClientPetList.getAllPets();
+            ClientPlayerEntity player = MinecraftClient.getInstance().player;
+            List<ClientPetData> pets = ClientPetList.getAllForPlayer(player);
             if (pets != null && !pets.isEmpty()) {
                 setPets(pets);
             }
@@ -217,6 +219,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     }
 
     // Update the current pet
+    @SuppressWarnings("unchecked")
     @Nullable
     protected void updateCurrentPet(ClientPetData newPet) {
         if (newPet == null) {
@@ -239,9 +242,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         // Update entity box
         entityBoxContainer.removeChild(entityBox);
-        @SuppressWarnings("unchecked")
-        var newEntityBox = Components.entity(Sizing.fixed(50), (EntityType<Entity>) newPet.entity.getType(),
-                newPet.entity.writeNbt(new NbtCompound()));
+        var newEntityBox = Components.entity(Sizing.fixed(50), (EntityType<Entity>) newPet.type,
+                newPet.getRenderingEntity(MinecraftClient.getInstance().world).writeNbt(new NbtCompound()));
         entityBox = newEntityBox;
         entityBoxContainer.child(entityBox);
         newEntityBox.lookAtCursor(true);

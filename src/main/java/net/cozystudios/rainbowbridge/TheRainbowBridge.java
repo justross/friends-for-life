@@ -29,6 +29,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
@@ -78,7 +79,7 @@ public class TheRainbowBridge implements ModInitializer {
                 PetTracker tracker = PetTracker.get(playerEntity.getServer());
                 PetData pd = tracker.get(((TameableEntityDecorator) tame).rainbowbridge_getUuid());
                 if (stack.getItem() instanceof RainbowCollarItem collarItem && pd == null) {
-                    return collarItem.applyCollar(stack, playerEntity, tame);
+                    return collarItem.applyCollar(stack, (ServerPlayerEntity) playerEntity, tame);
                 } else if (stack.isEmpty() && playerEntity.isSneaking()) {
                     ItemStack collar = RainbowCollarItem.getCollar(playerEntity, tame, pd);
                     if (collar == null)
@@ -106,7 +107,7 @@ public class TheRainbowBridge implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(RainbowBridgePackets.REQUEST_PET_TRACKER,
                 (server, player, handler, buf, responseSender) -> {
                     server.execute(() -> {
-                        var petList = PetTracker.serializePetList(player);
+                        var petList = PetTracker.serializePetList(server);
 
                         // send back to the client
                         ServerPlayNetworking.send(player, RainbowBridgePackets.RESPONSE_PET_TRACKER, petList);

@@ -51,7 +51,7 @@ public class TheRainbowBridgeCommands {
 
         StringBuilder pets = new StringBuilder();
         List<PetData> petsList = PetTracker.get(server).getTrackedMap().values().stream()
-                .filter(p -> p.ownerUUID.equals(player.getUuid()))
+                .filter(p -> p.ownerUuid.equals(player.getUuid()))
                 .toList();
 
         for (int i = 0; i < petsList.size(); i++) {

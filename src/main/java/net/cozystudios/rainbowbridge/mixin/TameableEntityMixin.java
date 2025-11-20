@@ -16,6 +16,7 @@ import net.cozystudios.rainbowbridge.petdatabase.PetData;
 import net.cozystudios.rainbowbridge.petdatabase.PetTracker;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -58,7 +59,10 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
             return;
         PetData trackedPetData = PetTracker.get(server).get(((TameableEntity) (Object) this).getUuid());
         if (trackedPetData != null) {
-            cir.setReturnValue(true);
+            // Only prevent targeting of players
+            if (target instanceof PlayerEntity) {
+                cir.setReturnValue(false);
+            }
         }
     }
 
@@ -74,7 +78,7 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
             if (server == null)
                 return;
 
-            PetData data = PetTracker.get(server).get( ((TameableEntityDecorator) self).rainbowbridge_getUuid());
+            PetData data = PetTracker.get(server).get(this.rainbowbridge_getUuid());
             if (data == null)
                 return;
             ((ServerWorld) self.getWorld()).spawnParticles(

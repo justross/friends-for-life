@@ -23,12 +23,18 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.item.TooltipContext;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -52,6 +58,16 @@ public class RainbowOcarinaItem extends Item {
         UUID ocarinaUuid = UUID.fromString(stack.getNbt().getString("ocarinaUuid"));
 
         return ClientOcarinaRegistry.hasPet(ocarinaUuid);
+    }
+
+    @Override
+    public Text getName(ItemStack stack) {
+        Text baseName = super.getName(stack);
+        String name = getPetName(stack);
+        if (!name.isEmpty()) {
+            return Text.literal(baseName.getString() + " - " + name);
+        }
+        return baseName;
     }
 
     @Override
@@ -110,23 +126,43 @@ public class RainbowOcarinaItem extends Item {
                         }
                     }
                 }
-            }
+                if (player.isSneaking()) {
+                    ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
+                    RegistryEntry<SoundEvent> soundEntry = serverPlayer.getWorld()
+                            .getRegistryManager()
+                            .get(Registries.SOUND_EVENT.getKey())
+                            .getEntry(RainbowBridgeSounds.OCARINA_TWO);
+                    serverPlayer.networkHandler.sendPacket(
+                            new PlaySoundS2CPacket(
+                                    soundEntry,
+                                    SoundCategory.PLAYERS,
+                                    player.getX(),
+                                    player.getY(),
+                                    player.getZ(),
+                                    0.7f, // volume
+                                    1.0f, // pitch
+                                    0L));
+                } else {
 
-            if (player.isSneaking()) {
-                player.playSound(
-                        RainbowBridgeSounds.OCARINA_TWO,
-                        SoundCategory.PLAYERS,
-                        .7f,
-                        1.0f);
+                    ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
+                    RegistryEntry<SoundEvent> soundEntry = serverPlayer.getWorld()
+                            .getRegistryManager()
+                            .get(Registries.SOUND_EVENT.getKey())
+                            .getEntry(RainbowBridgeSounds.OCARINA);
+                    serverPlayer.networkHandler.sendPacket(
+                            new PlaySoundS2CPacket(
+                                    soundEntry,
+                                    SoundCategory.PLAYERS,
+                                    player.getX(),
+                                    player.getY(),
+                                    player.getZ(),
+                                    0.7f, // volume
+                                    1.0f, // pitch
+                                    0L));
 
-            } else {
-                player.playSound(
-                        RainbowBridgeSounds.OCARINA,
-                        SoundCategory.PLAYERS,
-                        .7f,
-                        1.0f);
+                }
+                player.getItemCooldownManager().set(this, 45);
             }
-            player.getItemCooldownManager().set(this, 45);
         }
         return TypedActionResult.success(player.getStackInHand(hand));
 
@@ -171,18 +207,29 @@ public class RainbowOcarinaItem extends Item {
     }
 
     @Override
+    public void onItemEntityDestroyed(ItemEntity entity) {
+
+    }
+    
+
+    @Override
     @Environment(EnvType.CLIENT)
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
-        NbtCompound nbt = stack.getNbt();
-        if (nbt != null && nbt.contains("ocarinaUuid")) {
-            UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
-            UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
-            if (petUuid != null) {
-                ClientPetData pd = ClientPetList.getPet(petUuid);
-                if (pd != null) {
-                    tooltip.add(Text.literal(pd.name).formatted(Formatting.AQUA));
-                }
-            }
+        // NbtCompound nbt = stack.getNbt();
+        // if (nbt != null && nbt.contains("ocarinaUuid")) {
+        //     UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
+        //     UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
+        //     if (petUuid != null) {
+        //         ClientPetData pd = ClientPetList.getPet(petUuid);
+        //         if (pd != null) {
+        //             tooltip.add(Text.literal(pd.name).formatted(Formatting.AQUA));
+        //         }
+        //     }
+        // }
+
+        String name = getPetName(stack);
+        if (!name.isEmpty()) {
+            tooltip.add(Text.literal(name).formatted(Formatting.AQUA));
         }
 
         if (Screen.hasShiftDown()) {
@@ -200,5 +247,21 @@ public class RainbowOcarinaItem extends Item {
         } else {
             tooltip.add(Text.translatable("tooltip.rainbowbridge.more_info").formatted(Formatting.GRAY));
         }
+    }
+
+    private String getPetName(ItemStack stack) {
+        NbtCompound nbt = stack.getNbt();
+        if (nbt != null && nbt.contains("ocarinaUuid")) {
+            UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
+            UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
+            if (petUuid != null) {
+                ClientPetData pd = ClientPetList.getPet(petUuid);
+                if (pd != null) {
+                    return pd.name;
+                }
+            }
+        }
+
+        return "";
     }
 }

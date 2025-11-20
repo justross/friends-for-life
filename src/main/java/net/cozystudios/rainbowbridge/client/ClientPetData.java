@@ -4,19 +4,20 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 public class ClientPetData {
     public final UUID uuid;
-    public final String name;
-    public final String position;
-    public final Entity entity;
+    public String name;
+    public String position;
+    NbtCompound entityData;
+    public final EntityType<?> type;
     @Nullable
     public BlockPos homePosition;
     @Nullable
@@ -29,10 +30,27 @@ public class ClientPetData {
         this.position = position;
         this.homePosition = homePosition;
         this.homeDimension = homeDimension;
-        EntityType<?> type = Registries.ENTITY_TYPE.get(new Identifier(entityType));
+        this.type = Registries.ENTITY_TYPE.get(new Identifier(entityType));
 
-        this.entity = type.create(MinecraftClient.getInstance().world);
-        assert this.entity != null;
-        this.entity.readNbt(entityData);
+        this.entityData = entityData;
     }
+
+    // Do not call on network thread
+    public LivingEntity getRenderingEntity(World world) {
+        LivingEntity entity = (LivingEntity) type.create(world);
+        if (entity != null) {
+            entity.readNbt(entityData);
+        }
+        return entity;
+    }
+
+    @Nullable
+    public UUID getOwnerUuid() {
+        if (this.entityData.contains("OwnerUuid")) {
+            return this.entityData.getUuid("OwnerUuid");
+        } else {
+            return new UUID(0L,0L);
+        }
+    }
+
 }

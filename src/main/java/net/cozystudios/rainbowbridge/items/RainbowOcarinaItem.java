@@ -29,12 +29,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -127,38 +122,24 @@ public class RainbowOcarinaItem extends Item {
                     }
                 }
                 if (player.isSneaking()) {
-                    ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
-                    RegistryEntry<SoundEvent> soundEntry = serverPlayer.getWorld()
-                            .getRegistryManager()
-                            .get(Registries.SOUND_EVENT.getKey())
-                            .getEntry(RainbowBridgeSounds.OCARINA_TWO);
-                    serverPlayer.networkHandler.sendPacket(
-                            new PlaySoundS2CPacket(
-                                    soundEntry,
-                                    SoundCategory.PLAYERS,
-                                    player.getX(),
-                                    player.getY(),
-                                    player.getZ(),
-                                    0.7f, // volume
-                                    1.0f, // pitch
-                                    0L));
-                } else {
+                    world.playSound(
+                            null,
+                            player.getBlockPos(),
+                            RainbowBridgeSounds.OCARINA_TWO,
+                            SoundCategory.PLAYERS,
+                            0.7f, // volume
+                            1.0f // pitch
+                    );
 
-                    ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
-                    RegistryEntry<SoundEvent> soundEntry = serverPlayer.getWorld()
-                            .getRegistryManager()
-                            .get(Registries.SOUND_EVENT.getKey())
-                            .getEntry(RainbowBridgeSounds.OCARINA);
-                    serverPlayer.networkHandler.sendPacket(
-                            new PlaySoundS2CPacket(
-                                    soundEntry,
-                                    SoundCategory.PLAYERS,
-                                    player.getX(),
-                                    player.getY(),
-                                    player.getZ(),
-                                    0.7f, // volume
-                                    1.0f, // pitch
-                                    0L));
+                } else {
+                    world.playSound(
+                            null,
+                            player.getBlockPos(),
+                            RainbowBridgeSounds.OCARINA,
+                            SoundCategory.PLAYERS,
+                            0.7f, // volume
+                            1.0f // pitch
+                    );
 
                 }
                 player.getItemCooldownManager().set(this, 45);
@@ -210,21 +191,20 @@ public class RainbowOcarinaItem extends Item {
     public void onItemEntityDestroyed(ItemEntity entity) {
 
     }
-    
 
     @Override
     @Environment(EnvType.CLIENT)
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
         // NbtCompound nbt = stack.getNbt();
         // if (nbt != null && nbt.contains("ocarinaUuid")) {
-        //     UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
-        //     UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
-        //     if (petUuid != null) {
-        //         ClientPetData pd = ClientPetList.getPet(petUuid);
-        //         if (pd != null) {
-        //             tooltip.add(Text.literal(pd.name).formatted(Formatting.AQUA));
-        //         }
-        //     }
+        // UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
+        // UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
+        // if (petUuid != null) {
+        // ClientPetData pd = ClientPetList.getPet(petUuid);
+        // if (pd != null) {
+        // tooltip.add(Text.literal(pd.name).formatted(Formatting.AQUA));
+        // }
+        // }
         // }
 
         String name = getPetName(stack);

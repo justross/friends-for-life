@@ -50,6 +50,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
     private @Nullable ButtonComponent summonButton;
 
+    private List<ClientPetData> pets;
+
     public RosterScreen() {
         super(StackLayout.class, DataSource.asset(new Identifier("rainbowbridge", "roster")));
     }
@@ -102,18 +104,12 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         defaultHomeLabel.text(Text.literal(defaultHomePos.toShortString()));
 
         // Subscribe for live updates
-        ClientPetList.addListener(this::refreshPetList);
+        ClientPetList.addListener(this::fetchPetList);
 
         this.entityBoxContainer = this.uiAdapter.rootComponent.childById(StackLayout.class, "entity-box-container");
 
-        client.execute(() ->
-
-        {
-            ClientPlayerEntity player = MinecraftClient.getInstance().player;
-            List<ClientPetData> pets = ClientPetList.getAllForPlayer(player);
-            if (pets != null && !pets.isEmpty()) {
-                setPets(pets);
-            }
+        client.execute(() -> {
+            fetchPetList();
         });
     }
 
@@ -230,7 +226,6 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             return;
         }
 
-        List<ClientPetData> pets = ClientPetList.getAllPets();
         assert pets != null;
 
         this.currentPetIndex = pets.indexOf(newPet);
@@ -279,6 +274,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             return;
         }
 
+        this.pets = pets;
         updateCurrentPet(pets.get(0));
 
         // Hide the empty pet list message
@@ -344,12 +340,12 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     @Override
     public void close() {
         super.close();
-        ClientPetList.removeListener(this::refreshPetList);
+        ClientPetList.removeListener(this::fetchPetList);
         HomeBlockUpdateEvents.unsubscribe(homeUpdateListener);
     }
 
-    private void refreshPetList() {
-        List<ClientPetData> pets = ClientPetList.getAllPets();
+    private void fetchPetList() {
+        List<ClientPetData> pets = ClientPetList.getAllForPlayer(MinecraftClient.getInstance().player);
         setPets(pets);
     }
 

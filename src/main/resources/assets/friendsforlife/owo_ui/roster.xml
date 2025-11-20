@@ -56,11 +56,11 @@
                                             114
                                         </vertical>
                                     </sizing>
-                                    <allow-overflow>true</allow-overflow>
-                                    <margins>
-                                        <top>10</top>
-                                        <left>4</left>
-                                    </margins>
+                                    <allow-overflow>false</allow-overflow>
+                                    <padding>
+                                        <top>15</top>
+                                        <left>1</left>
+                                    </padding>
                                 </scroll>
 
                             </children>

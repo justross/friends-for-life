@@ -102,7 +102,12 @@ public class PetData {
         return tag;
     }
 
+    @Nullable
     public static PetData fromNbt(NbtCompound tag) {
+        if (tag == null) {
+            return null;
+        }
+
         UUID rainbowbridge_uuid = tag.getUuid("RainbowBridgeEntityUUID");
 
         UUID OwnerUuid = tag.getUuid("OwnerUuid");
@@ -130,7 +135,8 @@ public class PetData {
 
         NbtCompound entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
 
-        return new PetData(rainbowbridge_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim, entityData);
+        return new PetData(rainbowbridge_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim,
+                entityData);
     }
 
     public void updateEntityData(Consumer<NbtCompound> editor) {

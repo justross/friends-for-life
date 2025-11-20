@@ -171,7 +171,9 @@ public class PetTracker extends PersistentState {
         NbtList petList = nbt.getList("pets", NbtElement.COMPOUND_TYPE);
         for (NbtElement e : petList) {
             PetData data = PetData.fromNbt((NbtCompound) e);
-            tracker.tracked.put(data.uuid, data);
+            if (data != null) {
+                tracker.tracked.put(data.uuid, data);
+            }
         }
 
         // load recreated UUIDs

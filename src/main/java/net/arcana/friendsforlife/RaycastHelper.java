@@ -16,9 +16,8 @@ public class RaycastHelper {
      * Tries the hit block, then adjacent blocks toward the player, then falls back
      * to player position.
      *
-     * @return A safe BlockPos; defaults to player's feet if no safe spot found.
      */
-    public static BlockPos getSafeBlock(PlayerEntity player) {
+    public static BlockPos getRaycastBlock(PlayerEntity player) {
         double reach = player.isCreative() ? 5.0D : 4.5D;
         World world = player.getWorld();
         HitResult hit = player.raycast(reach, 0.0F, false);
@@ -57,8 +56,19 @@ public class RaycastHelper {
             }
         }
 
-        // Fallback to player's current block
-        return player.getBlockPos();
+        return null;
     }
 
+    /**
+     * 
+     * @param player
+     * @return A safe BlockPos; defaults to player's feet if no safe spot found.
+     */
+    public static BlockPos getSafeBlock(PlayerEntity player) {
+        BlockPos pos = getRaycastBlock(player);
+        if (pos == null) {
+            return player.getBlockPos();
+        }
+        return pos;
+    }
 }

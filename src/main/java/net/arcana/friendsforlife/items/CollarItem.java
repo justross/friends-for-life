@@ -56,14 +56,23 @@ public class CollarItem extends Item {
                 RegistryKey<World> dim = player.getWorld().getRegistryKey();
                 NbtCompound nbt = stack.getOrCreateNbt();
 
-                BlockPos pos = RaycastHelper.getSafeBlock(player);
+                BlockPos pos = RaycastHelper.getRaycastBlock(player);
+                if (pos == null && nbt != null && nbt.getLong("HomePos") != 0) {
+                    nbt.remove("HomePos");
+                    nbt.remove("HomeDim");
+                    player.sendMessage(Text.translatable("message.friendsforlife.home_unset"), true);
+                } else {
+                    if (pos == null) {
+                        pos = player.getBlockPos();
+                    }
+                    nbt.putLong("HomePos", pos.asLong());
+                    nbt.putString("HomeDim", dim.getValue().toString());
+                    stack.setNbt(nbt);
+                    player.getInventory().markDirty();
 
-                nbt.putLong("HomePos", pos.asLong());
-                nbt.putString("HomeDim", dim.getValue().toString());
-                stack.setNbt(nbt);
-                player.getInventory().markDirty();
+                    player.sendMessage(Text.translatable("message.friendsforlife.home_set"), true);
+                }
 
-                player.sendMessage(Text.translatable("message.friendsforlife.home_set"), true);
             }
         }
 

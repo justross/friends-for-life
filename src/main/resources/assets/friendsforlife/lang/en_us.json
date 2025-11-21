@@ -6,6 +6,7 @@
   "key.friendsforlife.open_book": "Open Pet Roster",
   "message.friendsforlife.default_home_set": "Default home location set",
   "message.friendsforlife.home_set": "Home location set",
+  "message.friendsforlife.home_unset": "Home location removed",
   "message.friendsforlife.ocarina_bound": "Ocarina bound to pet",
   "text.config.friendsforlife-config.title": "Friends For Life Options",
   "tooltip.friendsforlife.more_info": "Hold Shift for more info",

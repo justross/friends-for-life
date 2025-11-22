@@ -18,8 +18,6 @@ import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.petdatabase.PetWatcher;
-import net.arcana.friendsforlife.registry.ModBlockEntities;
-import net.arcana.friendsforlife.registry.ModBlocks;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -53,8 +51,6 @@ public class ModInit implements ModInitializer {
         // Register sounds/items
         Items.register();
         Sounds.register();
-        ModBlocks.register();
-        ModBlockEntities.register();
 
         PetWatcher.register();
         Commands.register();

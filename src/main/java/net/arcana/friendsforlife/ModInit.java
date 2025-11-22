@@ -158,9 +158,6 @@ public class ModInit implements ModInitializer {
                         });
                     } catch (Exception e) {
                         System.err.println("Bad summon packet from " + player.getName().getString() + ": " + e);
-                    } finally {
-                        ServerPlayNetworking.send(player, Packets.RESPONSE_PET_TELEPORT,
-                                new PacketByteBuf(Unpooled.buffer()));
                     }
                 });
 

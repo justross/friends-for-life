@@ -264,6 +264,7 @@ public class PetData {
         // entities
         nbtCopy.remove("Sitting");
         nbtCopy.remove("DeathTime");
+        nbtCopy.remove("ActiveEffects");
 
         tame.readNbt(nbtCopy);
         entityData = nbtCopy;

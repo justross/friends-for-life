@@ -6,23 +6,12 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
-sourceSets {
-    main {
-        java {
-            srcDir "src/main/generatedJava"
-        }
-    }
-}
-
-tasks.named("compileJava").configure {
-    options.generatedSourceOutputDirectory.set(
-        file("src/main/generatedJava/net/arcana/friendsforlife")
-    )
-}
-
 base {
 	archivesName = project.archives_base_name
 }
+
+sourceSets.main.java.srcDirs += [ 'src/main/generatedJava' ]
+compileJava.options.generatedSourceOutputDirectory = file("${projectDir}/src/main/generatedJava/net/arcana/friendsforlife")
 
 repositories {
 	// Add repositories to retrieve artifacts from in here.
@@ -31,7 +20,7 @@ repositories {
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
 	maven { 
-		url 'https://maven.wispforest.io' 
+		url = 'https://maven.wispforest.io' 
 	}
 
 	maven {

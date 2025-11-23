@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.arcana.friendsforlife.ModInit;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
 import net.minecraft.nbt.NbtCompound;
@@ -47,7 +48,7 @@ public class HomeBlock extends PersistentState {
                 RegistryKey<World> dim = RegistryKey.of(RegistryKeys.WORLD, new Identifier(dimStr));
                 state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
             } catch (Exception e) {
-                System.err.println("[FriendsForLife] Skipped invalid home entry: " + key);
+                ModInit.LOGGER.error(ModInit.MOD_ID, "Skipped invalid home entry: " + key);
             }
         }
         return state;

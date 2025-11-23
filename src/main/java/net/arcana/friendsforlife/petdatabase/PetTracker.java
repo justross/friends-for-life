@@ -54,7 +54,7 @@ public class PetTracker extends PersistentState {
         }
         tracked.remove(uuid);
         if (player == null) {
-            System.err.println("[FriendsForLife] Could not find player to update pet list for removed pet: " + uuid);
+            ModInit.LOGGER.error(ModInit.MOD_ID, "Could not find player to update pet list for removed pet: " + uuid);
             return;
         }
         var petList = PetTracker.serializePetList(server);

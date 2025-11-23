@@ -78,8 +78,7 @@ public class ModInit implements ModInitializer {
                     if (collar == null)
                         return ActionResult.PASS;
                     if (pd == null) {
-                        System.err.println(
-                                "[FriendsForLife] Unable to find PetData for tracked entity " + tame.getUuidAsString());
+                        ModInit.LOGGER.error(MOD_ID, "Unable to find PetData for tracked entity " + tame.getUuidAsString());
                         return ActionResult.PASS;
                     }
                     CollarItem.removePet(tame, pd);
@@ -131,7 +130,7 @@ public class ModInit implements ModInitializer {
                                     entity = petData.recreateEntity(server, targetWorldKey, x, y, z);
 
                                     if (entity == null) {
-                                        System.err.println("Failed to recreate entity for pet UUID: " + petUuid);
+                                        ModInit.LOGGER.error(MOD_ID, "Failed to recreate entity for pet UUID: " + petUuid);
                                         return;
                                     }
 
@@ -143,14 +142,14 @@ public class ModInit implements ModInitializer {
                                     }
 
                                 } else {
-                                    System.err.println("No pet data found for UUID: " + petUuid);
+                                    ModInit.LOGGER.error(MOD_ID, "No pet data found for UUID: " + petUuid);
                                 }
 
                                 teleportLocks.remove(petUuid);
                             }
                         });
                     } catch (Exception e) {
-                        System.err.println("Bad summon packet from " + player.getName().getString() + ": " + e);
+                        ModInit.LOGGER.error(MOD_ID, "Bad summon packet from " + player.getName().getString() + ": " + e);
                     }
                 });
 

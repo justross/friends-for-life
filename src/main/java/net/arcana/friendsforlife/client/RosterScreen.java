@@ -18,6 +18,7 @@ import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.Surface;
+import net.arcana.friendsforlife.ModInit;
 import net.arcana.friendsforlife.Packets;
 import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -121,7 +122,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         summonButton.onPress(button -> {
             if (currentPet == null) {
-                System.err.println("[FriendsForLife] Unable to find current pet.");
+                ModInit.LOGGER.error(ModInit.MOD_ID, "Unable to find current pet.");
                 return;
             }
 

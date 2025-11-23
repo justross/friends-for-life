@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.petdatabase.PetData;
+import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.minecraft.entity.ai.goal.WanderAroundGoal;
 import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.passive.TameableEntity;
@@ -38,8 +40,19 @@ public abstract class WanderAroundGoalMixin {
             if (pet instanceof TameableEntityDecorator
                     && ((TameableEntityDecorator) pet).friendsforlife_isForceWander()) {
 
-                HomeBlock homes = HomeBlock.get((MinecraftServer) pet.getServer());
-                HomeBlockHandle home = homes.getHome(pet.getServer(), (pet.getOwnerUuid()));
+                HomeBlockHandle home = null;
+                PetTracker tracker = PetTracker.get(pet.getServer());
+                PetData pd = tracker.getByEntityId(pet.getUuid());
+
+                // Check if pet has its own home, otherwise use default home
+                HomeBlockHandle petHbh = pd.getHomeBlock();
+                if (petHbh != null && petHbh.pos() != null) {
+                    home = petHbh;
+                } else {
+                    HomeBlock homes = HomeBlock.get((MinecraftServer) pet.getServer());
+                    home = homes.getHome(pet.getServer(), (pet.getOwnerUuid()));
+                }
+
                 if (home != null) {
                     Vec3d homePos = Vec3d.ofCenter(home.pos());
                     double wanderRadius = 10; // Distance from home block pet can wander

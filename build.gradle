@@ -10,8 +10,8 @@ base {
 	archivesName = project.archives_base_name
 }
 
-sourceSets.main.java.srcDirs += [ 'src/main/generatedJava' ]
-compileJava.options.generatedSourceOutputDirectory = file("${projectDir}/src/main/generatedJava/net/arcana/friendsforlife")
+// sourceSets.main.java.srcDirs += [ 'src/main/generatedJava' ]
+// compileJava.options.generatedSourceOutputDirectory = file("${projectDir}/src/main/generatedJava/net/arcana/friendsforlife")
 
 repositories {
 	// Add repositories to retrieve artifacts from in here.

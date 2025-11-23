@@ -31,7 +31,7 @@ import net.minecraft.world.World;
 
 public class ModInit implements ModInitializer {
     public static final String MOD_ID = "friendsforlife";
-    public static final FriendsForLifeConfig CONFIG = FriendsForLifeConfig.createAndLoad();
+    // public static final FriendsForLifeConfig CONFIG = FriendsForLifeConfig.createAndLoad();
     private final Map<UUID, Object> teleportLocks = new ConcurrentHashMap<>();
 
     // This logger is used to write text to the console and the log file.

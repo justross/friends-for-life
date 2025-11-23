@@ -21,10 +21,7 @@
 		],
         "client": [
           "net.arcana.friendsforlife.client.ClientInit"
-        ],
-		"fabric-datagen": [
-			"net.arcana.friendsforlife.DataGenerator"
-		]
+        ]
 	},
 	"mixins": [
 		"friendsforlife.mixins.json"

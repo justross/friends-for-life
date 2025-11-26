@@ -1,38 +1,49 @@
-MIT License (With Binary Distribution Restriction)
-
 Copyright (c) 2025 Justin Ross
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, and create derivative works, subject to
-the following conditions:
+of the source code of this software and associated documentation files (the
+"Software") to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, and create
+derivative works of the source code, subject to the following conditions:
 
 1. Contributions:
    Contributions to this project are allowed. By submitting a pull request,
    you agree to license your contribution under this same license.
 
 2. Binary Distribution Restriction:
-   Permission is NOT granted to distribute compiled versions of this software
-   (including mod JAR files) or any compiled derivative works, whether
+   Permission is NOT granted to distribute compiled versions of this Software
+   or any compiled derivative works (including mod JAR files), whether
    modified or unmodified, without the express written permission of the
    copyright holder.
 
-   This includes distribution on platforms such as CurseForge, Modrinth,
-   GitHub Releases, custom launchers, modpacks, and any other means of
-   sharing compiled binaries.
+   This restriction includes but is not limited to distribution through
+   third-party hosting sites, mirrors, custom launchers, GitHub Releases,
+   Discord attachments, or any platform other than the official download
+   locations designated by the copyright holder.
 
-3. Commercial Rights:
-   All commercial distribution rights for compiled versions of this software
-   are retained solely by the copyright holder.
+3. Modpack Exception (Link-Only Distribution):
+   Modpacks are permitted to include this Software **only** if they do NOT
+   redistribute the compiled binary directly.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+   Modpacks may reference this Software by including a link to the official
+   download page(s) (e.g., CurseForge, Modrinth, or any other site where the
+   copyright holder has made the mod available).
+
+   Modpacks may NOT package, bundle, or embed the compiled binary, nor
+   distribute it as part of their pack, installer, or launcher.
+
+4. Commercial Rights:
+   All commercial rights related to compiled versions of this Software are
+   reserved solely by the copyright holder.
+
+5. Preservation of Notice:
+   This copyright notice and this permission notice shall be included in all
+   copies or substantial modified portions of the source code.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

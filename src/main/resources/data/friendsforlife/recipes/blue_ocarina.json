@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    "TTT",
+    "   "
+  ],
+  "key": {
+    "T": { "item": "minecraft:blue_terracotta" }
+  },
+  "result": { "item": "friendsforlife:blue_ocarina" }
+}

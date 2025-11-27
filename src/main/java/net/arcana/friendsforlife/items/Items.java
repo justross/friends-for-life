@@ -12,9 +12,26 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
 import net.minecraft.util.Identifier;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 public class Items {
+    public static final Map<DyeColor, Item> COLORED_OCARINAS = new EnumMap<>(DyeColor.class);
+
+    static {
+        for (DyeColor color : DyeColor.values()) {
+            String name = color.getName() + "_ocarina";
+
+            Item item = registerItem(
+                    name,
+                    new OcarinaItem(new FabricItemSettings().maxCount(1)));
+
+            COLORED_OCARINAS.put(color, item);
+        }
+    }
 
     public static final Item COLLAR = registerItem("collar",
             new CollarItem(new FabricItemSettings().maxCount(1)));
@@ -30,12 +47,19 @@ public class Items {
                         entries.add(COLLAR);
                         entries.add(ROSTER);
                         entries.add(OCARINA);
+                        for (Item dyed : COLORED_OCARINAS.values()) {
+                            entries.add(dyed);
+                        }
                     })).build());
 
     private static void addItemsToTab(FabricItemGroupEntries entries) {
         entries.add(COLLAR);
         entries.add(ROSTER);
         entries.add(OCARINA);
+
+        for (Item dyed : COLORED_OCARINAS.values()) {
+            entries.add(dyed);
+        }
     }
 
     private static Item registerItem(String name, Item item) {

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 
 import net.arcana.friendsforlife.accessors.MobEntityAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.goal.WanderAroundGoal;
-import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 
 public class TameableWanderHelper {
 
@@ -14,11 +14,11 @@ public class TameableWanderHelper {
      * Makes a tameable entity wander around temporarily as if untamed.
      * Does not permanently change tamed status.
      */
-    public static void makeTameableWander(TameableEntity entity) {
-        if (entity == null || entity.getWorld().isClient)
+    public static void makeTameableWander(TamableAnimal entity) {
+        if (entity == null || entity.level().isClientSide)
             return;
 
-        entity.setSitting(false);
+        entity.setOrderedToSit(false);
         entity.getNavigation().stop();
 
         try {
@@ -27,14 +27,14 @@ public class TameableWanderHelper {
             if (accessor instanceof TameableEntityDecorator wanderable) {
                 wanderable.friendsforlife_setForceWander(true);
             }
-            accessor.friendsforlife_getGoalSelector().add(5, new WanderAroundGoal(entity, 1.0, 20));
+            accessor.friendsforlife_getGoalSelector().addGoal(5, new RandomStrollGoal(entity, 1.0, 20));
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static void stopWandering(TameableEntity entity) {
+    public static void stopWandering(TamableAnimal entity) {
         if (entity instanceof TameableEntityDecorator wanderable) {
             wanderable.friendsforlife_setForceWander(false);
 
@@ -43,9 +43,9 @@ public class TameableWanderHelper {
 
                 var goalsToRemove = new ArrayList<Goal>();
 
-                for (var prioritizedGoal : accessor.friendsforlife_getGoalSelector().getGoals()) {
+                for (var prioritizedGoal : accessor.friendsforlife_getGoalSelector().getAvailableGoals()) {
                     Goal goal = prioritizedGoal.getGoal();
-                    if (goal instanceof WanderAroundGoal) {
+                    if (goal instanceof RandomStrollGoal) {
                         goalsToRemove.add(goal);
 
                         if (prioritizedGoal.isRunning()) {
@@ -55,7 +55,7 @@ public class TameableWanderHelper {
                 }
 
                 for (var goal : goalsToRemove) {
-                    accessor.friendsforlife_getGoalSelector().remove(goal);
+                    accessor.friendsforlife_getGoalSelector().removeGoal(goal);
                 }
 
             } catch (Exception e) {

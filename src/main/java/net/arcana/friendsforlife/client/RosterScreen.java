@@ -22,18 +22,18 @@ import net.arcana.friendsforlife.ModInit;
 import net.arcana.friendsforlife.Packets;
 import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.DyeColor;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.DyeColor;
 
 public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     private int currentPetIndex;
@@ -54,7 +54,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     private List<ClientPetData> pets;
 
     public RosterScreen() {
-        super(StackLayout.class, DataSource.asset(new Identifier("friendsforlife", "roster")));
+        super(StackLayout.class, DataSource.asset(new ResourceLocation("friendsforlife", "roster")));
     }
 
     // @Override
@@ -62,7 +62,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         super.init();
 
         // Request pets from server
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         ClientPlayNetworking.send(Packets.REQUEST_PET_TRACKER, buf);
 
         this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
@@ -74,13 +74,13 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         // Listen for default home block update
         homeUpdateListener = (uuid, newHomePos, newDim) -> {
-            ClientPlayerEntity player = MinecraftClient.getInstance().player;
-            if (uuid.equals(player.getUuid())) {
+            LocalPlayer player = Minecraft.getInstance().player;
+            if (uuid.equals(player.getUUID())) {
                 if (currentPet != null && currentPet.homePosition == null) {
-                    homeLabel.text(Text.literal(newHomePos.toShortString()));
+                    homeLabel.text(Component.literal(newHomePos.toShortString()));
                     homeButton.visible = true;
                 }
-                defaultHomeLabel.text(Text.literal(newHomePos.toShortString()));
+                defaultHomeLabel.text(Component.literal(newHomePos.toShortString()));
             }
         };
 
@@ -95,21 +95,21 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         }
 
         if (currentPet != null) {
-            homeLabel.text(Text.literal(homePos.toShortString()));
+            homeLabel.text(Component.literal(homePos.toShortString()));
             homeButton.visible = true;
         } else {
-            homeLabel.text(Text.literal(""));
+            homeLabel.text(Component.literal(""));
         }
 
         BlockPos defaultHomePos = ClientHomeBlock.get();
-        defaultHomeLabel.text(Text.literal(defaultHomePos.toShortString()));
+        defaultHomeLabel.text(Component.literal(defaultHomePos.toShortString()));
 
         // Subscribe for live updates
         ClientPetList.addListener(this::fetchPetList);
 
         this.entityBoxContainer = this.uiAdapter.rootComponent.childById(StackLayout.class, "entity-box-container");
 
-        client.execute(() -> {
+        minecraft.execute(() -> {
             fetchPetList();
         });
     }
@@ -127,23 +127,23 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             }
 
             // Get player position
-            MinecraftClient mc = MinecraftClient.getInstance();
+            Minecraft mc = Minecraft.getInstance();
             if (mc.player == null)
                 return;
-            BlockPos pos = mc.player.getBlockPos();
+            BlockPos pos = mc.player.blockPosition();
             int x = pos.getX();
             int y = pos.getY();
             int z = pos.getZ();
             boolean shouldSit = false;
-            Identifier dim = mc.player.getWorld().getRegistryKey().getValue();
+            ResourceLocation dim = mc.player.level().dimension().location();
 
             // Send teleport packet
-            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-            buf.writeUuid(currentPet.uuid);
+            FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+            buf.writeUUID(currentPet.uuid);
             buf.writeInt(x);
             buf.writeInt(y);
             buf.writeInt(z);
-            buf.writeIdentifier(dim);
+            buf.writeResourceLocation(dim);
             buf.writeBoolean(shouldSit);
 
             ClientPlayNetworking.send(Packets.REQUEST_PET_TELEPORT, buf);
@@ -156,19 +156,19 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "home-position-label");
         homeButton.visible = currentPet != null;
         if (currentPet == null) {
-            homeLabel.text(Text.literal(""));
+            homeLabel.text(Component.literal(""));
         }
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             this.homeButton.onPress(button -> {
                 BlockPos homePos = null;
-                Identifier dimId = null;
+                ResourceLocation dimId = null;
                 if (currentPet.homePosition != null && currentPet.homeDimension != null) {
                     homePos = currentPet.homePosition;
                     dimId = currentPet.homeDimension;
                 } else {
                     homePos = ClientHomeBlock.get();
-                    dimId = ClientHomeBlock.getDimKey().getValue();
+                    dimId = ClientHomeBlock.getDimKey().location();
                 }
                 if (homePos == null) {
                     return;
@@ -182,12 +182,12 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
                 boolean shouldWander = true;
 
                 // Send teleport packet
-                PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-                buf.writeUuid(currentPet.uuid);
+                FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+                buf.writeUUID(currentPet.uuid);
                 buf.writeInt(x);
                 buf.writeInt(y);
                 buf.writeInt(z);
-                buf.writeIdentifier(dimId);
+                buf.writeResourceLocation(dimId);
                 buf.writeBoolean(shouldWander);
 
                 ClientPlayNetworking.send(Packets.REQUEST_PET_TELEPORT, buf);
@@ -210,7 +210,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         // Close button
         rootComponent.childById(ButtonComponent.class, "close-button").onPress(button -> {
-            close();
+            onClose();
         });
 
     }
@@ -239,7 +239,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         // Update entity box
         entityBoxContainer.removeChild(entityBox);
         var newEntityBox = Components.entity(Sizing.fixed(50), (EntityType<Entity>) newPet.type,
-                newPet.getRenderingEntity(MinecraftClient.getInstance().world).writeNbt(new NbtCompound()));
+                newPet.getRenderingEntity(Minecraft.getInstance().level).saveWithoutId(new CompoundTag()));
         entityBox = newEntityBox;
         entityBoxContainer.child(entityBox);
         newEntityBox.lookAtCursor(true);
@@ -247,16 +247,16 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         // Update name
         LabelComponent nameLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "pet-name-label");
-        String clipped = MinecraftClient.getInstance().textRenderer.trimToWidth(
-                Text.literal(newPet.name).getString(),
+        String clipped = Minecraft.getInstance().font.plainSubstrByWidth(
+                Component.literal(newPet.name).getString(),
                 nameLabel.maxWidth());
-        nameLabel.text(Text.literal(clipped));
-        nameLabel.tooltip(Text.literal(newPet.name));
+        nameLabel.text(Component.literal(clipped));
+        nameLabel.tooltip(Component.literal(newPet.name));
 
         // Update positions
         LabelComponent positionLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
                 "pet-position-label");
-        positionLabel.text(Text.literal(newPet.position));
+        positionLabel.text(Component.literal(newPet.position));
         this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
                 "home-position-label");
 
@@ -266,7 +266,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         } else {
             homePos = ClientHomeBlock.get();
         }
-        this.homeLabel.text(Text.literal(homePos.toShortString()));
+        this.homeLabel.text(Component.literal(homePos.toShortString()));
     }
 
     public void setPets(List<ClientPetData> pets) {
@@ -301,7 +301,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             StackLayout wrapper = Containers.stack(Sizing.fill(95), Sizing.content());
             wrapper.surface(Surface.flat(normalBg));
 
-            LabelComponent label = (LabelComponent) Components.label(Text.literal(" " + pet.name))
+            LabelComponent label = (LabelComponent) Components.label(Component.literal(" " + pet.name))
                     .cursorStyle(CursorStyle.HAND)
                     .horizontalSizing(Sizing.fill(100))
                     .margins(Insets.vertical(2));
@@ -309,8 +309,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             label.mouseDown().subscribe((mouseX, mouseY, button) -> {
                 if (button == 0) {
                     updateCurrentPet(pet);
-                    MinecraftClient.getInstance().getSoundManager().play(
-                            PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    Minecraft.getInstance().getSoundManager().play(
+                            SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
                 return false;
@@ -334,19 +334,19 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 
     @Override
-    public void close() {
-        super.close();
+    public void onClose() {
+        super.onClose();
         ClientPetList.removeListener(this::fetchPetList);
         HomeBlockUpdateEvents.unsubscribe(homeUpdateListener);
     }
 
     private void fetchPetList() {
-        List<ClientPetData> pets = ClientPetList.getAllForPlayer(MinecraftClient.getInstance().player);
+        List<ClientPetData> pets = ClientPetList.getAllForPlayer(Minecraft.getInstance().player);
         setPets(pets);
     }
 

@@ -9,74 +9,74 @@ import net.arcana.friendsforlife.client.RosterScreen;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.item.TooltipContext;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 
 public class RosterItem extends Item {
-    public RosterItem(Settings settings) {
+    public RosterItem(Properties settings) {
         super(settings);
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
+    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
         // Only open screen on the client side
-        if (world.isClient) {
-            if (!player.isSneaking()) {
+        if (world.isClientSide) {
+            if (!player.isShiftKeyDown()) {
                 openRosterScreen();
-                player.playSound(SoundEvents.ITEM_BOOK_PAGE_TURN, 1.0F, 1.0F);
+                player.playSound(SoundEvents.BOOK_PAGE_TURN, 1.0F, 1.0F);
             }
         }
 
-        if (!world.isClient) {
+        if (!world.isClientSide) {
             // If sneak is held down set home block position
-            if (player.isSneaking()) {
-                RegistryKey<World> dim = player.getWorld().getRegistryKey();
+            if (player.isShiftKeyDown()) {
+                ResourceKey<Level> dim = player.level().dimension();
                 BlockPos pos = RaycastHelper.getSafeBlock(player);
 
-                HomeBlock.get(world.getServer()).setHome((ServerPlayerEntity) player, pos, dim);
+                HomeBlock.get(world.getServer()).setHome((ServerPlayer) player, pos, dim);
 
-                player.sendMessage(Text.translatable("message.friendsforlife.default_home_set"), true);
+                player.displayClientMessage(Component.translatable("message.friendsforlife.default_home_set"), true);
             }
         }
-        return TypedActionResult.success(player.getStackInHand(hand));
+        return InteractionResultHolder.success(player.getItemInHand(hand));
     }
 
     @Environment(EnvType.CLIENT)
     private void openRosterScreen() {
-        MinecraftClient.getInstance().setScreen(new RosterScreen());
+        Minecraft.getInstance().setScreen(new RosterScreen());
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
         if (Screen.hasShiftDown()) {
-            List<OrderedText> lines = Tooltip.wrapLines(
-                    MinecraftClient.getInstance(),
-                    Text.translatable("tooltip.friendsforlife.roster.info"));
-            for (OrderedText line : lines) {
+            List<FormattedCharSequence> lines = Tooltip.splitTooltip(
+                    Minecraft.getInstance(),
+                    Component.translatable("tooltip.friendsforlife.roster.info"));
+            for (FormattedCharSequence line : lines) {
                 StringBuilder sb = new StringBuilder();
                 line.accept((index, style, codePoint) -> {
                     sb.appendCodePoint(codePoint);
                     return true;
                 });
-                tooltip.add(Text.literal(sb.toString()).formatted(Formatting.GRAY));
+                tooltip.add(Component.literal(sb.toString()).withStyle(ChatFormatting.GRAY));
             }
         } else {
-            tooltip.add(Text.translatable("tooltip.friendsforlife.more_info").formatted(Formatting.GRAY));
+            tooltip.add(Component.translatable("tooltip.friendsforlife.more_info").withStyle(ChatFormatting.GRAY));
         }
     }
 }

@@ -12,27 +12,27 @@ import net.arcana.friendsforlife.packets.PetDataRequestPacket;
 import net.arcana.friendsforlife.packets.RespawnUpdatePacket;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 
 public class Net {
     public static final OwoNetChannel CHANNEL = OwoNetChannel.create(
-            new Identifier("friendsforlife", "main"));
+            new ResourceLocation("friendsforlife", "main"));
 
     public static void register() {
         Net.CHANNEL.registerServerbound(HomeRequestPacket.class, (packet, handler) -> {
-            ServerPlayerEntity player = handler.player();
+            ServerPlayer player = handler.player();
 
             // Get the persistent HomeBlock instance for this world
             HomeBlock homes = HomeBlock.get(player.getServer());
-            HomeBlockHandle hbh = homes.getHome(player.getServer(), player.getUuid());
+            HomeBlockHandle hbh = homes.getHome(player.getServer(), player.getUUID());
 
             if (hbh != null) {
                 // Send it back to the client
                 Net.CHANNEL.serverHandle(player).send(
-                        new HomeUpdatePacket(hbh.pos(), hbh.dim().getValue()));
+                        new HomeUpdatePacket(hbh.pos(), hbh.dim().location()));
             }
         });
 
@@ -41,19 +41,19 @@ public class Net {
             PetData pd = PetTracker.get(handler.player().getServer()).get(packet.uuid());
             if (pd != null) {
                 pd.homePosition = packet.pos();
-                pd.homeDimension = RegistryKey.of(RegistryKeys.WORLD, packet.dimId());
+                pd.homeDimension = ResourceKey.create(Registries.DIMENSION, packet.dimId());
             }
         });
 
         // Set default home block
         Net.CHANNEL.registerServerbound(DefaultSetHomeRequestPacket.class, (packet, handler) -> {
             HomeBlock.get(handler.player().getServer()).setHome(handler.player(), packet.pos(),
-                    RegistryKey.of(RegistryKeys.WORLD, packet.dimId()));
+                    ResourceKey.create(Registries.DIMENSION, packet.dimId()));
         });
 
         /** Update client with new home position if respawn point changes and home is not set */
         Net.CHANNEL.registerServerbound(RespawnUpdatePacket.class, (packet, handler) -> {
-            if (!HomeBlock.get(handler.player().getServer()).hasHome(handler.player().getUuid())) {
+            if (!HomeBlock.get(handler.player().getServer()).hasHome(handler.player().getUUID())) {
 
                 Net.CHANNEL.serverHandle(handler.player()).send(new HomeUpdatePacket(packet.pos(), packet.dimId()));
             }

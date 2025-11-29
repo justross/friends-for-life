@@ -14,31 +14,31 @@ import io.netty.buffer.Unpooled;
 import net.arcana.friendsforlife.Packets;
 import net.arcana.friendsforlife.ModInit;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateManager;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.storage.DimensionDataStorage;
 
-public class PetTracker extends PersistentState {
+public class PetTracker extends SavedData {
     private final Map<UUID, PetData> tracked = new HashMap<>();
     private final Set<UUID> recreated = new HashSet<>(); // Entities that have been recreated and must be removed
 
-    public void addPet(TameableEntity tame, ServerPlayerEntity player, ItemStack item, long tameTimestamp) {
+    public void addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
         ModInit.LOGGER.info("adding new entity to be tracked: " + tame.getName());
-        if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUuid()))) {
-            NbtCompound collar = new NbtCompound();
-            item.writeNbt(collar);
+        if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUUID()))) {
+            CompoundTag collar = new CompoundTag();
+            item.save(collar);
             PetData pd = new PetData(tame, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
             var petList = PetTracker.serializePetList(player.getServer());
@@ -47,7 +47,7 @@ public class PetTracker extends PersistentState {
     }
 
     public void removePet(MinecraftServer server, UUID uuid) {
-        var player = server.getPlayerManager().getPlayer(tracked.get(uuid).ownerUuid);
+        var player = server.getPlayerList().getPlayer(tracked.get(uuid).ownerUuid);
         PetData petData = tracked.get(uuid);
         if (petData != null) {
             petData.onRemoved(server);
@@ -58,7 +58,7 @@ public class PetTracker extends PersistentState {
             return;
         }
         var petList = PetTracker.serializePetList(server);
-        ServerPlayNetworking.send((ServerPlayerEntity) player, Packets.RESPONSE_PET_TRACKER, petList);
+        ServerPlayNetworking.send((ServerPlayer) player, Packets.RESPONSE_PET_TRACKER, petList);
     }
 
     public Map<UUID, PetData> getTrackedMap() {
@@ -71,8 +71,8 @@ public class PetTracker extends PersistentState {
     }
 
     public static PetTracker get(MinecraftServer server) {
-        PersistentStateManager manager = server.getOverworld().getPersistentStateManager();
-        return manager.getOrCreate(PetTracker::fromNBT, PetTracker::new, "friends_for_life_tracked_pets");
+        DimensionDataStorage manager = server.overworld().getDataStorage();
+        return manager.computeIfAbsent(PetTracker::fromNBT, PetTracker::new, "friends_for_life_tracked_pets");
     }
 
     public PetData get(UUID uuid) {
@@ -86,20 +86,20 @@ public class PetTracker extends PersistentState {
                 .orElse(null);
     }
 
-    public static List<PetData> getAllForPlayer(PlayerEntity player) {
+    public static List<PetData> getAllForPlayer(Player player) {
         return PetTracker.get(player.getServer()).tracked.values().stream()
-                .filter(pet -> pet.ownerUuid.equals(player.getUuid()))
+                .filter(pet -> pet.ownerUuid.equals(player.getUUID()))
                 .toList();
     }
 
-    public static PacketByteBuf serializePetData(PetData pet, MinecraftServer server) {
-        PacketByteBuf out = new PacketByteBuf(Unpooled.buffer());
+    public static FriendlyByteBuf serializePetData(PetData pet, MinecraftServer server) {
+        FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
         serializePetData(out, pet, server);
         return out;
     }
 
-    private static void serializePetData(PacketByteBuf out, PetData pet, MinecraftServer server) {
-        out.writeUuid(pet.uuid);
+    private static void serializePetData(FriendlyByteBuf out, PetData pet, MinecraftServer server) {
+        out.writeUUID(pet.uuid);
 
         var data = pet.getEntity(server).join();
         if (data != null && data.entity() != null) {
@@ -110,17 +110,17 @@ public class PetTracker extends PersistentState {
             writeEntityData(out, null, pet.getEntityData());
         }
 
-        out.writeString(pet.position.toShortString());
+        out.writeUtf(pet.position.toShortString());
         out.writeLong(pet.homePosition != null ? pet.homePosition.asLong() : 0L);
-        out.writeString(pet.homeDimension != null ? pet.homeDimension.getValue().toString() : "");
+        out.writeUtf(pet.homeDimension != null ? pet.homeDimension.location().toString() : "");
     }
 
     /** Serializes pet list for player */
-    public static PacketByteBuf serializePetList(MinecraftServer server) {
+    public static FriendlyByteBuf serializePetList(MinecraftServer server) {
         List<PetData> pets = new ArrayList<>(PetTracker.get(server).tracked.values());
         pets.sort((a, b) -> Long.compare(a.tameTimestamp, b.tameTimestamp));
 
-        PacketByteBuf out = new PacketByteBuf(Unpooled.buffer());
+        FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
         out.writeInt(pets.size());
 
         for (PetData pet : pets) {
@@ -146,17 +146,17 @@ public class PetTracker extends PersistentState {
     }
 
     @Override
-    public NbtCompound writeNbt(NbtCompound nbt) {
-        NbtList petList = new NbtList();
+    public CompoundTag save(CompoundTag nbt) {
+        ListTag petList = new ListTag();
         for (PetData data : tracked.values()) {
             petList.add(data.toNbt());
         }
         nbt.put("pets", petList);
 
-        NbtList recreatedList = new NbtList();
+        ListTag recreatedList = new ListTag();
         for (UUID uuid : recreated) {
-            NbtCompound tag = new NbtCompound();
-            tag.putUuid("uuid", uuid);
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("uuid", uuid);
             recreatedList.add(tag);
         }
         nbt.put("recreatedPets", recreatedList);
@@ -164,24 +164,24 @@ public class PetTracker extends PersistentState {
         return nbt;
     }
 
-    public static PetTracker fromNBT(NbtCompound nbt) {
+    public static PetTracker fromNBT(CompoundTag nbt) {
         PetTracker tracker = new PetTracker();
 
         // load pets
-        NbtList petList = nbt.getList("pets", NbtElement.COMPOUND_TYPE);
-        for (NbtElement e : petList) {
-            PetData data = PetData.fromNbt((NbtCompound) e);
+        ListTag petList = nbt.getList("pets", Tag.TAG_COMPOUND);
+        for (Tag e : petList) {
+            PetData data = PetData.fromNbt((CompoundTag) e);
             if (data != null) {
                 tracker.tracked.put(data.uuid, data);
             }
         }
 
         // load recreated UUIDs
-        NbtList recreatedList = nbt.getList("recreatedPets", NbtElement.COMPOUND_TYPE);
-        for (NbtElement e : recreatedList) {
-            NbtCompound tag = (NbtCompound) e;
-            if (tag.containsUuid("uuid")) {
-                tracker.recreated.add(tag.getUuid("uuid"));
+        ListTag recreatedList = nbt.getList("recreatedPets", Tag.TAG_COMPOUND);
+        for (Tag e : recreatedList) {
+            CompoundTag tag = (CompoundTag) e;
+            if (tag.hasUUID("uuid")) {
+                tracker.recreated.add(tag.getUUID("uuid"));
             }
         }
 
@@ -195,25 +195,25 @@ public class PetTracker extends PersistentState {
      * @param entity
      * @param nbt
      */
-    private static void writeEntityData(PacketByteBuf out, Entity entity, @Nullable NbtCompound nbt) {
+    private static void writeEntityData(FriendlyByteBuf out, Entity entity, @Nullable CompoundTag nbt) {
         if (entity != null) {
-            out.writeString(Registries.ENTITY_TYPE.getId(entity.getType()).toString());
-            NbtCompound entityNbt = new NbtCompound();
-            entity.saveNbt(entityNbt);
+            out.writeUtf(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+            CompoundTag entityNbt = new CompoundTag();
+            entity.save(entityNbt);
             out.writeNbt(entityNbt);
 
             String name = entity.hasCustomName()
                     ? entity.getCustomName().getString()
-                    : entity.getType().getName().getString();
-            out.writeString(name);
+                    : entity.getType().getDescription().getString();
+            out.writeUtf(name);
         } else if (nbt != null) {
-            out.writeString(nbt.getString("id"));
+            out.writeUtf(nbt.getString("id"));
             out.writeNbt(nbt);
 
             String name = nbt.contains("CustomName")
-                    ? Text.Serializer.fromJson(nbt.getString("CustomName")).getString()
-                    : Registries.ENTITY_TYPE.get(new Identifier(nbt.getString("id"))).getName().getString();
-            out.writeString(name);
+                    ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
+                    : BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(nbt.getString("id"))).getDescription().getString();
+            out.writeUtf(name);
         }
     }
 

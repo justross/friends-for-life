@@ -19,60 +19,60 @@ import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.item.TooltipContext;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 
 public class OcarinaItem extends Item {
-    public OcarinaItem(Settings settings) {
+    public OcarinaItem(Properties settings) {
         super(settings);
     }
 
     @Override
     @Environment(EnvType.CLIENT)
-    public boolean hasGlint(ItemStack stack) {
-        if (stack.getNbt() == null || !stack.getNbt().contains("ocarinaUuid"))
+    public boolean isFoil(ItemStack stack) {
+        if (stack.getTag() == null || !stack.getTag().contains("ocarinaUuid"))
             return false;
 
-        UUID ocarinaUuid = UUID.fromString(stack.getNbt().getString("ocarinaUuid"));
+        UUID ocarinaUuid = UUID.fromString(stack.getTag().getString("ocarinaUuid"));
 
         return ClientOcarinaRegistry.hasPet(ocarinaUuid);
     }
 
     @Override
-    public Text getName(ItemStack stack) {
-        Text baseName = super.getName(stack);
+    public Component getName(ItemStack stack) {
+        Component baseName = super.getName(stack);
         String name = getPetName(stack);
         if (!name.isEmpty()) {
-            return Text.literal(baseName.getString() + " - " + name);
+            return Component.literal(baseName.getString() + " - " + name);
         }
         return baseName;
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
-        ItemStack stack = player.getStackInHand(hand);
+    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
         // --- Check cooldown ---
-        if (!player.getItemCooldownManager().isCoolingDown(this)) {
+        if (!player.getCooldowns().isOnCooldown(this)) {
 
-            if (!world.isClient) {
-                NbtCompound nbt = stack.getOrCreateNbt();
+            if (!world.isClientSide) {
+                CompoundTag nbt = stack.getOrCreateTag();
                 UUID ocarinaUuid = nbt.contains("ocarinaUuid")
                         ? UUID.fromString(nbt.getString("ocarinaUuid"))
                         : null;
@@ -82,13 +82,13 @@ public class OcarinaItem extends Item {
                 PetData petData = tracker.get(petUuid);
 
                 // Summon bound pet
-                if (!player.isSneaking() && petUuid != null) {
+                if (!player.isShiftKeyDown() && petUuid != null) {
                     if (petData != null) {
                         BlockPos pos = RaycastHelper.getSafeBlock(player);
                         TaskScheduler.schedule(() -> {
                             var tame = petData.recreateEntity(
                                     world.getServer(),
-                                    world.getRegistryKey(),
+                                    world.dimension(),
                                     pos.getX(),
                                     pos.getY(),
                                     pos.getZ());
@@ -101,18 +101,18 @@ public class OcarinaItem extends Item {
                 }
 
                 // Send pet home if using using ocarina on assigned pet
-                if (player.isSneaking() && registry.getPetForOcarina(ocarinaUuid) != null &&
+                if (player.isShiftKeyDown() && registry.getPetForOcarina(ocarinaUuid) != null &&
                         registry.getPetForOcarina(ocarinaUuid).equals(petData.uuid)) {
 
                     // Get homeblock from pet data, or fall back to default homeblock
                     HomeBlockHandle hbh = petData.getHomeBlock();
                     if (hbh == null) {
-                        hbh = HomeBlock.get(world.getServer()).getHome(world.getServer(), player.getUuid());
+                        hbh = HomeBlock.get(world.getServer()).getHome(world.getServer(), player.getUUID());
                     }
                     if (hbh != null) {
                         var tame = petData.recreateEntity(
                                 world.getServer(),
-                                world.getRegistryKey(),
+                                world.dimension(),
                                 hbh.pos().getX(),
                                 hbh.pos().getY(),
                                 hbh.pos().getZ());
@@ -121,12 +121,12 @@ public class OcarinaItem extends Item {
                         }
                     }
                 }
-                if (player.isSneaking()) {
+                if (player.isShiftKeyDown()) {
                     world.playSound(
                             null,
-                            player.getBlockPos(),
+                            player.blockPosition(),
                             Sounds.OCARINA_TWO,
-                            SoundCategory.PLAYERS,
+                            SoundSource.PLAYERS,
                             0.7f, // volume
                             1.0f // pitch
                     );
@@ -134,33 +134,33 @@ public class OcarinaItem extends Item {
                 } else {
                     world.playSound(
                             null,
-                            player.getBlockPos(),
+                            player.blockPosition(),
                             Sounds.OCARINA,
-                            SoundCategory.PLAYERS,
+                            SoundSource.PLAYERS,
                             0.7f, // volume
                             1.0f // pitch
                     );
 
                 }
-                player.getItemCooldownManager().set(this, 45);
+                player.getCooldowns().addCooldown(this, 45);
             }
         }
-        return TypedActionResult.success(player.getStackInHand(hand));
+        return InteractionResultHolder.success(player.getItemInHand(hand));
 
     }
 
     /** Handles interactions from bound pet entity callback */
-    public ActionResult useOcarinaFromPet(World world, PlayerEntity player, ItemStack stack, PetData petData,
-            TameableEntity tame) {
-        if (!player.getItemCooldownManager().isCoolingDown(this)) {
-            NbtCompound nbt = stack.getOrCreateNbt();
+    public InteractionResult useOcarinaFromPet(Level world, Player player, ItemStack stack, PetData petData,
+            TamableAnimal tame) {
+        if (!player.getCooldowns().isOnCooldown(this)) {
+            CompoundTag nbt = stack.getOrCreateTag();
             UUID ocarinaUuid = nbt.contains("ocarinaUuid")
                     ? UUID.fromString(nbt.getString("ocarinaUuid"))
                     : null;
             OcarinaRegistry registry = OcarinaRegistry.get(world.getServer());
             UUID petUuid = registry.getPetForOcarina(ocarinaUuid);
 
-            if (player.isSneaking()) {
+            if (player.isShiftKeyDown()) {
 
                 // Bind the ocarina to pet if not already assigned to it
                 if ((petUuid == null || !petUuid.equals(petData.uuid))) {
@@ -176,25 +176,25 @@ public class OcarinaItem extends Item {
 
                     registry.register(ocarinaId, petData.uuid, world.getServer());
 
-                    player.sendMessage(Text.translatable("message.friendsforlife.ocarina_bound"), true);
-                    return ActionResult.SUCCESS;
+                    player.displayClientMessage(Component.translatable("message.friendsforlife.ocarina_bound"), true);
+                    return InteractionResult.SUCCESS;
                 } else {
-                    return use(world, player, Hand.MAIN_HAND).getResult();
+                    return use(world, player, InteractionHand.MAIN_HAND).getResult();
                 }
             }
         }
 
-        return ActionResult.PASS;
+        return InteractionResult.PASS;
     }
 
     @Override
-    public void onItemEntityDestroyed(ItemEntity entity) {
+    public void onDestroyed(ItemEntity entity) {
 
     }
 
     @Override
     @Environment(EnvType.CLIENT)
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
         // NbtCompound nbt = stack.getNbt();
         // if (nbt != null && nbt.contains("ocarinaUuid")) {
         // UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
@@ -209,28 +209,28 @@ public class OcarinaItem extends Item {
 
         String name = getPetName(stack);
         if (!name.isEmpty()) {
-            tooltip.add(Text.literal(name).formatted(Formatting.AQUA));
+            tooltip.add(Component.literal(name).withStyle(ChatFormatting.AQUA));
         }
 
         if (Screen.hasShiftDown()) {
-            List<OrderedText> lines = Tooltip.wrapLines(
-                    MinecraftClient.getInstance(),
-                    Text.translatable("tooltip.friendsforlife.ocarina.info"));
-            for (OrderedText line : lines) {
+            List<FormattedCharSequence> lines = Tooltip.splitTooltip(
+                    Minecraft.getInstance(),
+                    Component.translatable("tooltip.friendsforlife.ocarina.info"));
+            for (FormattedCharSequence line : lines) {
                 StringBuilder sb = new StringBuilder();
                 line.accept((index, style, codePoint) -> {
                     sb.appendCodePoint(codePoint);
                     return true;
                 });
-                tooltip.add(Text.literal(sb.toString()).formatted(Formatting.GRAY));
+                tooltip.add(Component.literal(sb.toString()).withStyle(ChatFormatting.GRAY));
             }
         } else {
-            tooltip.add(Text.translatable("tooltip.friendsforlife.more_info").formatted(Formatting.GRAY));
+            tooltip.add(Component.translatable("tooltip.friendsforlife.more_info").withStyle(ChatFormatting.GRAY));
         }
     }
 
     private String getPetName(ItemStack stack) {
-        NbtCompound nbt = stack.getNbt();
+        CompoundTag nbt = stack.getTag();
         if (nbt != null && nbt.contains("ocarinaUuid")) {
             UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
             UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);

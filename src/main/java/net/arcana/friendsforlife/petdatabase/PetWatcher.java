@@ -10,12 +10,12 @@ import net.arcana.friendsforlife.Packets;
 import net.arcana.friendsforlife.packets.PetUpdatePacket;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 
 public class PetWatcher {
     private static int tickCounter = 0;
@@ -31,7 +31,7 @@ public class PetWatcher {
 
         PetTracker tracker = PetTracker.get(server);
 
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         boolean changed = false;
 
         for (Map.Entry<UUID, PetData> entry : tracker.getTrackedMap().entrySet()) {
@@ -44,7 +44,7 @@ public class PetWatcher {
                 continue;
 
             // --- Position check ---
-            BlockPos newPos = entity.getBlockPos();
+            BlockPos newPos = entity.blockPosition();
             if (!newPos.equals(petdata.position)) {
                 petdata.position = newPos;
                 changed = true;
@@ -54,12 +54,12 @@ public class PetWatcher {
             // --- Name check ---
             // compare the CustomName stored in petdata NBT with the entity's current custom
             // name
-            NbtCompound nbtSnapshot = petdata.getEntityData();
+            CompoundTag nbtSnapshot = petdata.getEntityData();
             String oldName = nbtSnapshot.getString("CustomName"); // JSON stored in NBT
             String newName = entity.getCustomName() != null ? entity.getCustomName().toString() : "";
 
             if (!newName.equals(oldName)) {
-                petdata.updateEntityData(nbt -> entity.writeNbt(nbt)); // overwrite snapshot with current NBT
+                petdata.updateEntityData(nbt -> entity.saveWithoutId(nbt)); // overwrite snapshot with current NBT
                 changed = true;
                 petChanged = true;
             }
@@ -68,18 +68,18 @@ public class PetWatcher {
                 continue;
             }
 
-            buf.writeUuid(petUuid);
-            buf.writeString(entity.getCustomName() != null ? entity.getCustomName().getString() : "");
+            buf.writeUUID(petUuid);
+            buf.writeUtf(entity.getCustomName() != null ? entity.getCustomName().getString() : "");
             buf.writeBlockPos(petdata.position);
         }
 
         if (changed) {
             // --- Send packet ---
-            for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 
-                ServerPlayNetworking.send(player, Packets.RESPONSE_PET_UPDATE, new PacketByteBuf(buf.copy()));
+                ServerPlayNetworking.send(player, Packets.RESPONSE_PET_UPDATE, new FriendlyByteBuf(buf.copy()));
             }
         }
-        tracker.markDirty();
+        tracker.setDirty();
     }
 }

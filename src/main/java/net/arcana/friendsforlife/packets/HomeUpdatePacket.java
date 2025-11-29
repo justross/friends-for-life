@@ -1,8 +1,8 @@
 package net.arcana.friendsforlife.packets;
 
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 
-public record HomeUpdatePacket(BlockPos pos, Identifier dimId) {
+public record HomeUpdatePacket(BlockPos pos, ResourceLocation dimId) {
 
 }

@@ -22,8 +22,8 @@ public class ClientOcarinaRegistry {
                     int size = buf.readInt();
                     Map<UUID, UUID> newRegistry = new HashMap<>();
                     for (int i = 0; i < size; i++) {
-                        UUID ocarina = buf.readUuid();
-                        UUID pet = buf.readUuid();
+                        UUID ocarina = buf.readUUID();
+                        UUID pet = buf.readUUID();
                         newRegistry.put(ocarina, pet);
                     }
 

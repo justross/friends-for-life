@@ -1,5 +1,6 @@
 package net.arcana.friendsforlife.mixin;
 
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -7,19 +8,20 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
-import net.minecraft.entity.ai.goal.FollowOwnerGoal;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
 
 @Mixin(FollowOwnerGoal.class)
-public abstract class FollowOwnerGoalMixin extends Goal {
+ abstract class FollowOwnerGoalMixin extends Goal {
 
+    @Final
     @Shadow
-    protected TameableEntity tameable;
+    private TamableAnimal tamable;
 
-    @Inject(method = "canStart", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canUse", at = @At("HEAD"), cancellable = true)
     private void onCanStart(CallbackInfoReturnable<Boolean> cir) {
-        if (tameable instanceof TameableEntityDecorator td && td.friendsforlife_isForceWander()) {
+        if (tamable instanceof TameableEntityDecorator td && td.friendsforlife_isForceWander()) {
             cir.setReturnValue(false); // Skip following while wandering
         }
     }

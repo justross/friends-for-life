@@ -1,48 +1,47 @@
 package net.arcana.friendsforlife.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.arcana.friendsforlife.items.CollarItem;
 import net.arcana.friendsforlife.items.RosterItem;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class HomeBlockRenderer {
 
         public static void register() {
                 WorldRenderEvents.AFTER_ENTITIES.register((context) -> {
-                        MinecraftClient client = MinecraftClient.getInstance();
-                        RegistryKey<World> dimKey = ClientHomeBlock.getDimKey();
+                        Minecraft client = Minecraft.getInstance();
+                        ResourceKey<Level> dimKey = ClientHomeBlock.getDimKey();
                         if (client.player != null) {
                                 BlockPos homeBlock = null;
-                                ItemStack item = client.player.getMainHandStack();
+                                ItemStack item = client.player.getMainHandItem();
 
                                 // If holding roster, show default home block
                                 if (item.getItem() instanceof RosterItem
-                                                && client.world.getRegistryKey().equals(dimKey)
+                                                && client.level.dimension().equals(dimKey)
                                                 && KeyHelper.isAltDown()) {
                                         homeBlock = ClientHomeBlock.get();
                                 }
 
                                 // If holding collar, show that pet's home block
                                 else if (item.getItem() instanceof CollarItem && KeyHelper.isAltDown()) {
-                                        var dim = item.hasNbt() && item.getNbt().contains("HomeDim")
-                                                        ? new Identifier(item.getNbt().getString("HomeDim"))
+                                        var dim = item.hasTag() && item.getTag().contains("HomeDim")
+                                                        ? new ResourceLocation(item.getTag().getString("HomeDim"))
                                                         : null;
-                                        if (dim == null || !client.world.getRegistryKey().getValue().equals(dim))
+                                        if (dim == null || !client.level.dimension().location().equals(dim))
                                                 return;
-                                        homeBlock = item.hasNbt() && item.getNbt().contains("HomePos")
-                                                        ? BlockPos.fromLong(item.getNbt().getLong("HomePos"))
+                                        homeBlock = item.hasTag() && item.getTag().contains("HomePos")
+                                                        ? BlockPos.of(item.getTag().getLong("HomePos"))
                                                         : null;
                                 }
 
@@ -51,19 +50,19 @@ public class HomeBlockRenderer {
 
                                 var matrices = context.matrixStack();
                                 var camera = context.camera();
-                                matrices.push();
+                                matrices.pushPose();
 
                                 RenderSystem.enablePolygonOffset();
                                 RenderSystem.polygonOffset(1f, -10f);
 
                                 matrices.translate(
-                                                homeBlock.getX() - camera.getPos().x,
-                                                homeBlock.getY() - camera.getPos().y,
-                                                homeBlock.getZ() - camera.getPos().z);
+                                                homeBlock.getX() - camera.getPosition().x,
+                                                homeBlock.getY() - camera.getPosition().y,
+                                                homeBlock.getZ() - camera.getPosition().z);
 
-                                VertexConsumer buffer = client.getBufferBuilders()
-                                                .getEntityVertexConsumers()
-                                                .getBuffer(RenderLayer.getLines());
+                                VertexConsumer buffer = client.renderBuffers()
+                                                .bufferSource()
+                                                .getBuffer(RenderType.lines());
 
                                 // Rainbow color pulse
                                 float time = (System.currentTimeMillis() % 5000) / 5000f;
@@ -71,9 +70,9 @@ public class HomeBlockRenderer {
                                 float g = (float) Math.sin(time * Math.PI * 2 + 2) * 0.5f + 0.5f;
                                 float b = (float) Math.sin(time * Math.PI * 2 + 4) * 0.5f + 0.5f;
 
-                                VoxelShape shape = VoxelShapes.fullCube();
+                                VoxelShape shape = Shapes.block();
 
-                                WorldRenderer.drawShapeOutline(
+                                LevelRenderer.renderVoxelShape(
                                                 matrices,
                                                 buffer,
                                                 shape,
@@ -85,8 +84,8 @@ public class HomeBlockRenderer {
                                 RenderSystem.polygonOffset(0f, 0f);
                                 RenderSystem.disablePolygonOffset();
 
-                                matrices.pop();
-                                client.getBufferBuilders().getEntityVertexConsumers().draw();
+                                matrices.popPose();
+                                client.renderBuffers().bufferSource().endBatch();
 
                         }
                 });

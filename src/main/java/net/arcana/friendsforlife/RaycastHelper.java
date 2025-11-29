@@ -2,13 +2,12 @@ package net.arcana.friendsforlife;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 
 public class RaycastHelper {
     /**
@@ -17,26 +16,26 @@ public class RaycastHelper {
      * to player position.
      *
      */
-    public static BlockPos getRaycastBlock(PlayerEntity player) {
+    public static BlockPos getRaycastBlock(Player player) {
         double reach = player.isCreative() ? 5.0D : 4.5D;
-        World world = player.getWorld();
-        HitResult hit = player.raycast(reach, 0.0F, false);
+        Level world = player.level();
+        HitResult hit = player.pick(reach, 0.0F, false);
 
         if (hit.getType() == HitResult.Type.BLOCK) {
             BlockHitResult blockHit = (BlockHitResult) hit;
             BlockPos hitPos = blockHit.getBlockPos();
-            Direction face = blockHit.getSide();
+            Direction face = blockHit.getDirection();
 
             // Start with the block in front of the hit face
-            BlockPos start = hitPos.offset(face);
+            BlockPos start = hitPos.relative(face);
 
             // List of candidate positions: the block in front, then the cardinal neighbors
             List<BlockPos> candidates = new ArrayList<>();
             candidates.add(start);
 
             // Add the other horizontal neighbors around the hit block
-            for (Direction dir : Direction.Type.HORIZONTAL) {
-                BlockPos candidate = hitPos.offset(dir);
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
+                BlockPos candidate = hitPos.relative(dir);
                 if (!candidate.equals(start)) {
                     candidates.add(candidate);
                 }
@@ -47,9 +46,9 @@ public class RaycastHelper {
             int maxUpwards = 1;
             for (BlockPos candidate : candidates) {
                 for (int i = 0; i <= maxUpwards; i++) {
-                    BlockPos pos = candidate.up(i);
-                    BlockPos below = pos.down();
-                    if (world.isAir(pos) && !world.isAir(below)) {
+                    BlockPos pos = candidate.above(i);
+                    BlockPos below = pos.below();
+                    if (world.isEmptyBlock(pos) && !world.isEmptyBlock(below)) {
                         return pos;
                     }
                 }
@@ -64,10 +63,10 @@ public class RaycastHelper {
      * @param player
      * @return A safe BlockPos; defaults to player's feet if no safe spot found.
      */
-    public static BlockPos getSafeBlock(PlayerEntity player) {
+    public static BlockPos getSafeBlock(Player player) {
         BlockPos pos = getRaycastBlock(player);
         if (pos == null) {
-            return player.getBlockPos();
+            return player.blockPosition();
         }
         return pos;
     }

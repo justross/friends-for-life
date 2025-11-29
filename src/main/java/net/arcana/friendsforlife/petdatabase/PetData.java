@@ -11,22 +11,22 @@ import org.jetbrains.annotations.Nullable;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.level.Level;
 
 public class PetData {
     /**
@@ -37,38 +37,38 @@ public class PetData {
     public final UUID uuid;
     public UUID entityUuid;
     public BlockPos position;
-    public NbtCompound collar;
+    public CompoundTag collar;
     public final UUID ownerUuid;
     public final String OwnerName;
     public BlockPos homePosition;
-    public RegistryKey<World> homeDimension;
+    public ResourceKey<Level> homeDimension;
     /** The time, in milliseconds, when the pet was tamed */
     public final long tameTimestamp;
-    private NbtCompound entityData;
+    private CompoundTag entityData;
 
-    public NbtCompound getEntityData() {
+    public CompoundTag getEntityData() {
         return entityData;
     }
 
-    public record PetEntityHandle(@Nullable TameableEntity entity, @Nullable NbtCompound shoulderNbt) {
+    public record PetEntityHandle(@Nullable TamableAnimal entity, @Nullable CompoundTag shoulderNbt) {
     }
 
-    public PetData(TameableEntity tame, Entity player, NbtCompound collarItem, long tameDate) {
+    public PetData(TamableAnimal tame, Entity player, CompoundTag collarItem, long tameDate) {
         this.uuid = ((TameableEntityDecorator) tame).friendsforlife_getUuid(); // Separate UUID from entity for tracking
                                                                               // purposes
-        this.entityUuid = tame.getUuid();
-        this.position = tame.getBlockPos();
-        this.OwnerName = player.getEntityName();
-        this.ownerUuid = player.getUuid();
+        this.entityUuid = tame.getUUID();
+        this.position = tame.blockPosition();
+        this.OwnerName = player.getScoreboardName();
+        this.ownerUuid = player.getUUID();
         this.collar = collarItem;
-        this.entityData = new NbtCompound();
-        tame.saveSelfNbt(this.entityData);
+        this.entityData = new CompoundTag();
+        tame.saveAsPassenger(this.entityData);
         this.entityData.putString("EntityType", tame.getType().toString());
         this.tameTimestamp = tameDate;
     }
 
-    public PetData(UUID friendsforlifeUuid, BlockPos pos, UUID OwnerUuid, String OwnerName, NbtCompound collarItem,
-            long tameDate, BlockPos homePosition, RegistryKey<World> homeDimension, NbtCompound entityData) {
+    public PetData(UUID friendsforlifeUuid, BlockPos pos, UUID OwnerUuid, String OwnerName, CompoundTag collarItem,
+            long tameDate, BlockPos homePosition, ResourceKey<Level> homeDimension, CompoundTag entityData) {
         this.uuid = friendsforlifeUuid;
         this.entityUuid = uuid;
         this.position = pos;
@@ -81,11 +81,11 @@ public class PetData {
         this.entityData = entityData;
     }
 
-    public NbtCompound toNbt() {
-        NbtCompound tag = new NbtCompound();
-        tag.putUuid("FriendsForLifeEntityUUID", uuid);
+    public CompoundTag toNbt() {
+        CompoundTag tag = new CompoundTag();
+        tag.putUUID("FriendsForLifeEntityUUID", uuid);
 
-        tag.putUuid("OwnerUuid", ownerUuid);
+        tag.putUUID("OwnerUuid", ownerUuid);
         tag.putString("OwnerName", OwnerName);
         tag.put("collarItem", collar);
 
@@ -96,50 +96,50 @@ public class PetData {
         tag.putLong("tameDate", tameTimestamp);
 
         tag.putLong("homePos", homePosition != null ? homePosition.asLong() : 0L);
-        tag.putString("homeDim", homeDimension != null ? homeDimension.getValue().toString() : "");
+        tag.putString("homeDim", homeDimension != null ? homeDimension.location().toString() : "");
 
         tag.put("EntityData", entityData);
         return tag;
     }
 
     @Nullable
-    public static PetData fromNbt(NbtCompound tag) {
+    public static PetData fromNbt(CompoundTag tag) {
         if (tag == null) {
             return null;
         }
 
-        UUID friendsforlife_uuid = tag.getUuid("FriendsForLifeEntityUUID");
+        UUID friendsforlife_uuid = tag.getUUID("FriendsForLifeEntityUUID");
 
-        UUID OwnerUuid = tag.getUuid("OwnerUuid");
+        UUID OwnerUuid = tag.getUUID("OwnerUuid");
         String OwnerName = tag.getString("OwnerName");
-        NbtCompound collarItem = tag.getCompound("collarItem");
+        CompoundTag collarItem = tag.getCompound("collarItem");
 
         BlockPos pos = new BlockPos(tag.getInt("x"), tag.getInt("y"), tag.getInt("z"));
 
         long tameDate = tag.getLong("tameDate");
 
-        BlockPos homePos = tag.contains("homePos") ? BlockPos.fromLong(tag.getLong("homePos")) : null;
-        RegistryKey<World> homeDim = tag.contains("homeDim") && !tag.getString("homeDim").isEmpty()
-                ? RegistryKey.of(RegistryKeys.WORLD, new Identifier(tag.getString("homeDim")))
+        BlockPos homePos = tag.contains("homePos") ? BlockPos.of(tag.getLong("homePos")) : null;
+        ResourceKey<Level> homeDim = tag.contains("homeDim") && !tag.getString("homeDim").isEmpty()
+                ? ResourceKey.create(Registries.DIMENSION, new ResourceLocation(tag.getString("homeDim")))
                 : null;
 
         List<UUID> ocarinas = new ArrayList<>();
 
-        NbtList ocarinaList = tag.getList("boundOcarinas", NbtElement.COMPOUND_TYPE);
-        for (NbtElement e : ocarinaList) {
-            NbtCompound ocarinaNbt = (NbtCompound) e;
-            if (ocarinaNbt.containsUuid("uuid")) {
-                ocarinas.add(ocarinaNbt.getUuid("uuid"));
+        ListTag ocarinaList = tag.getList("boundOcarinas", Tag.TAG_COMPOUND);
+        for (Tag e : ocarinaList) {
+            CompoundTag ocarinaNbt = (CompoundTag) e;
+            if (ocarinaNbt.hasUUID("uuid")) {
+                ocarinas.add(ocarinaNbt.getUUID("uuid"));
             }
         }
 
-        NbtCompound entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
+        CompoundTag entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
 
         return new PetData(friendsforlife_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim,
                 entityData);
     }
 
-    public void updateEntityData(Consumer<NbtCompound> editor) {
+    public void updateEntityData(Consumer<CompoundTag> editor) {
         if (entityData == null)
             return;
         editor.accept(entityData);
@@ -154,7 +154,7 @@ public class PetData {
 
     public String getName() {
         if (entityData.contains("CustomName")) {
-            return Text.Serializer.fromJson(entityData.getString("CustomName")).getString();
+            return Component.Serializer.fromJson(entityData.getString("CustomName")).getString();
         } else if (entityData.contains("EntityType")) {
             return entityData.getString("EntityType");
         } else {
@@ -172,30 +172,30 @@ public class PetData {
         if (server == null)
             return CompletableFuture.completedFuture(null);
 
-        for (ServerWorld world : server.getWorlds()) {
+        for (ServerLevel world : server.getAllLevels()) {
             var entity = world.getEntity(this.entityUuid);
             if (entity != null) {
-                return CompletableFuture.completedFuture(new PetEntityHandle((TameableEntity) entity, null));
+                return CompletableFuture.completedFuture(new PetEntityHandle((TamableAnimal) entity, null));
             }
         }
 
-        for (ServerWorld world : server.getWorlds()) {
-            for (Entity entity : world.iterateEntities()) {
-                if (entity instanceof TameableEntity tame && tame instanceof TameableEntityDecorator data) {
+        for (ServerLevel world : server.getAllLevels()) {
+            for (Entity entity : world.getAllEntities()) {
+                if (entity instanceof TamableAnimal tame && tame instanceof TameableEntityDecorator data) {
                     if (data.friendsforlife_getUuid().equals(uuid)) {
-                        return CompletableFuture.completedFuture(new PetEntityHandle((TameableEntity) tame, null));
+                        return CompletableFuture.completedFuture(new PetEntityHandle((TamableAnimal) tame, null));
                     }
                 }
             }
         }
 
-        var player = server.getPlayerManager().getPlayer(ownerUuid);
+        var player = server.getPlayerList().getPlayer(ownerUuid);
         if (player != null) {
 
-            NbtCompound left = player.getShoulderEntityLeft();
-            NbtCompound right = player.getShoulderEntityRight();
+            CompoundTag left = player.getShoulderEntityLeft();
+            CompoundTag right = player.getShoulderEntityRight();
             // Check if the entity is on a player's shoulder
-            for (NbtCompound nbt : List.of(left, right)) {
+            for (CompoundTag nbt : List.of(left, right)) {
                 if (nbt != null && !nbt.isEmpty()) {
                     if (entityDataMatchesShoulder(nbt, entityData)) {
                         return CompletableFuture.completedFuture(new PetEntityHandle(null, nbt));
@@ -219,13 +219,13 @@ public class PetData {
      * @return The recreated TameableEntity, or null if recreation failed
      */
     @Nullable
-    public TameableEntity recreateEntity(MinecraftServer server, RegistryKey<World> worldKey, int x, int y,
+    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y,
             int z) {
         if (server == null || entityData == null)
             return null;
 
         String typeId = entityData.getString("id");
-        EntityType<?> type = Registries.ENTITY_TYPE.get(new Identifier(typeId));
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(typeId));
 
         // Discard entity if it exists
         getEntity(server).thenAccept(pdh -> {
@@ -234,29 +234,29 @@ public class PetData {
             }
         });
 
-        Entity entity = type.create(server.getWorld(worldKey));
-        if (!(entity instanceof TameableEntity tame))
+        Entity entity = type.create(server.getLevel(worldKey));
+        if (!(entity instanceof TamableAnimal tame))
             return null;
 
         // Remove from shoulder
-        ServerPlayerEntity player = server.getPlayerManager().getPlayer(ownerUuid);
+        ServerPlayer player = server.getPlayerList().getPlayer(ownerUuid);
         if (player != null) {
-            NbtCompound left = player.getShoulderEntityLeft();
-            NbtCompound right = player.getShoulderEntityRight();
+            CompoundTag left = player.getShoulderEntityLeft();
+            CompoundTag right = player.getShoulderEntityRight();
 
-            if (!left.isEmpty() && left.containsUuid("UUID") && left.getUuid("UUID").equals(entityUuid)) {
+            if (!left.isEmpty() && left.hasUUID("UUID") && left.getUUID("UUID").equals(entityUuid)) {
                 ((ShoulderAccessor) player).friendsforlife_clearShoulder(entityUuid);
             }
 
-            if (!right.isEmpty() && right.containsUuid("UUID") && right.getUuid("UUID").equals(entityUuid)) {
+            if (!right.isEmpty() && right.hasUUID("UUID") && right.getUUID("UUID").equals(entityUuid)) {
                 ((ShoulderAccessor) player).friendsforlife_clearShoulder(entityUuid);
             }
         }
 
-        NbtCompound nbtCopy = entityData.copy();
+        CompoundTag nbtCopy = entityData.copy();
         UUID oldUuid = entityUuid;
         entityUuid = UUID.randomUUID();
-        nbtCopy.putUuid("UUID", entityUuid);
+        nbtCopy.putUUID("UUID", entityUuid);
         nbtCopy.remove("Pos");
         nbtCopy.remove("Motion");
         nbtCopy.remove("Rotation");
@@ -266,17 +266,17 @@ public class PetData {
         nbtCopy.remove("DeathTime");
         nbtCopy.remove("ActiveEffects");
 
-        tame.readNbt(nbtCopy);
+        tame.load(nbtCopy);
         entityData = nbtCopy;
-        server.getWorld(worldKey).spawnEntity(tame);
+        server.getLevel(worldKey).addFreshEntity(tame);
 
-        tame.refreshPositionAndAngles(x, y, z, entity.getYaw(), entity.getPitch());
+        tame.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
         PetTracker pt = PetTracker.get(server);
         pt.getRecreatedMap().add(oldUuid); // Mark for deletion
         return tame;
     }
 
-    private boolean entityDataMatchesShoulder(NbtCompound shoulderNbt, NbtCompound savedEntityData) {
+    private boolean entityDataMatchesShoulder(CompoundTag shoulderNbt, CompoundTag savedEntityData) {
         // Compare type
         String shoulderId = shoulderNbt.getString("id");
         String savedId = savedEntityData.getString("id");
@@ -296,8 +296,8 @@ public class PetData {
         boolean savedHasName = savedEntityData.contains("CustomName");
 
         if (shoulderHasName && savedHasName) {
-            String shoulderName = Text.Serializer.fromJson(shoulderNbt.getString("CustomName")).getString();
-            String savedName = Text.Serializer.fromJson(savedEntityData.getString("CustomName")).getString();
+            String shoulderName = Component.Serializer.fromJson(shoulderNbt.getString("CustomName")).getString();
+            String savedName = Component.Serializer.fromJson(savedEntityData.getString("CustomName")).getString();
             return shoulderName.equals(savedName);
         }
 

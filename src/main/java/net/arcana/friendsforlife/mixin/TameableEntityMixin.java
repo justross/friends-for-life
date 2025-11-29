@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -14,15 +13,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.particle.ParticleTypes;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.player.Player;
 
-@Mixin(TameableEntity.class)
+@Mixin(TamableAnimal.class)
 public abstract class TameableEntityMixin implements TameableEntityDecorator {
     private UUID friendsforlife_uuid = UUID.randomUUID();
 
@@ -36,10 +35,6 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
         return this.friendsforlife_uuid;
     }
 
-    @Shadow
-    @Nullable
-    public abstract UUID getOwnerUuid();
-
     @Unique
     private boolean friendsforlife_forceWander = false;
 
@@ -52,39 +47,39 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
     }
 
     // disable other mobs being able to target pets
-    @Inject(method = "canTarget", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canAttack", at = @At("HEAD"), cancellable = true)
     private void friendsforlife$disableCanBeAttackedIfPet(LivingEntity target, CallbackInfoReturnable<Boolean> cir) {
-        MinecraftServer server = target.getWorld().getServer();
+        MinecraftServer server = target.level().getServer();
         if (server == null)
             return;
-        PetData trackedPetData = PetTracker.get(server).get(((TameableEntity) (Object) this).getUuid());
+        PetData trackedPetData = PetTracker.get(server).get(((TamableAnimal) (Object) this).getUUID());
         if (trackedPetData != null) {
             // Only prevent targeting of players
-            if (target instanceof PlayerEntity) {
+            if (target instanceof Player) {
                 cir.setReturnValue(false);
             }
         }
     }
 
     // Remove wandering behavior when setSetting is called
-    @Inject(method = "setSitting", at = @At("HEAD"))
+    @Inject(method = "setOrderedToSit", at = @At("HEAD"))
     private void onSetSitting(boolean sitting, CallbackInfo ci) {
         this.friendsforlife_forceWander = false;
-        TameableEntity self = (TameableEntity) (Object) this;
+        TamableAnimal self = (TamableAnimal) (Object) this;
 
-        if (!self.getWorld().isClient()) {
+        if (!self.level().isClientSide()) {
 
-            MinecraftServer server = self.getWorld().getServer();
+            MinecraftServer server = self.level().getServer();
             if (server == null)
                 return;
 
             PetData data = PetTracker.get(server).get(this.friendsforlife_getUuid());
             if (data == null)
                 return;
-            ((ServerWorld) self.getWorld()).spawnParticles(
+            ((ServerLevel) self.level()).sendParticles(
                     ParticleTypes.HEART,
                     self.getX(),
-                    self.getBodyY(1),
+                    self.getY(1),
                     self.getZ(),
                     1,
                     0.3, 0.3, 0.3,
@@ -92,19 +87,19 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
         }
     }
 
-    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
-    private void writeWanderStateToNbt(NbtCompound nbt, CallbackInfo ci) {
+    @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
+    private void writeWanderStateToNbt(CompoundTag nbt, CallbackInfo ci) {
         nbt.putBoolean("FriendsForLifeForceWander", this.friendsforlife_isForceWander());
-        nbt.putUuid("FriendsForLifeEntityUUID", this.friendsforlife_getUuid());
+        nbt.putUUID("FriendsForLifeEntityUUID", this.friendsforlife_getUuid());
     }
 
-    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
-    private void readWanderStateFromNbt(NbtCompound nbt, CallbackInfo ci) {
+    @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
+    private void readWanderStateFromNbt(CompoundTag nbt, CallbackInfo ci) {
         if (nbt.contains("FriendsForLifeForceWander")) {
             this.friendsforlife_setForceWander(nbt.getBoolean("FriendsForLifeForceWander"));
         }
         if (nbt.contains("FriendsForLifeEntityUUID")) {
-            UUID entityUuid = nbt.getUuid("FriendsForLifeEntityUUID");
+            UUID entityUuid = nbt.getUUID("FriendsForLifeEntityUUID");
             if (entityUuid != null) {
                 this.friendsforlife_setUuid(entityUuid);
             }

@@ -12,27 +12,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 
-@Mixin(ServerPlayerEntity.class)
+@Mixin(ServerPlayer.class)
 public abstract class ServerPlayerEntityMixin {
 
-    @Inject(method = "setSpawnPoint", at = @At("RETURN"))
-    private void onSetSpawnPoint(RegistryKey<World> dimension, BlockPos pos, float angle, boolean forced,
+    @Inject(method = "setRespawnPosition", at = @At("RETURN"))
+    private void onSetSpawnPoint(ResourceKey<Level> dimension, BlockPos pos, float angle, boolean forced,
             boolean update, CallbackInfo ci) {
 
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        UUID uuid = self.getUuid();
+        ServerPlayer self = (ServerPlayer) (Object) this;
+        UUID uuid = self.getUUID();
 
         HomeBlock home = HomeBlock.get(self.server);
 
         if (!home.hasHome(uuid)) {
 
-            Identifier dimId = self.getWorld().getRegistryKey().getValue();
+            ResourceLocation dimId = self.level().dimension().location();
 
             Net.CHANNEL.serverHandle(self)
                     .send(new HomeUpdatePacket(pos, dimId));

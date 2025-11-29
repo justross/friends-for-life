@@ -6,26 +6,26 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
 
-@Mixin(PlayerEntity.class)
+@Mixin(Player.class)
 public abstract class PlayerEntityMixin implements ShoulderAccessor {
 
-    @Shadow public abstract NbtCompound getShoulderEntityLeft();
-    @Shadow public abstract NbtCompound getShoulderEntityRight();
-    @Shadow protected abstract void setShoulderEntityLeft(NbtCompound nbt);
-    @Shadow protected abstract void setShoulderEntityRight(NbtCompound nbt);
+    @Shadow public abstract CompoundTag getShoulderEntityLeft();
+    @Shadow public abstract CompoundTag getShoulderEntityRight();
+    @Shadow protected abstract void setShoulderEntityLeft(CompoundTag nbt);
+    @Shadow protected abstract void setShoulderEntityRight(CompoundTag nbt);
 
     @Override
     public void friendsforlife_clearShoulder(UUID petUUID) {
-        if (!getShoulderEntityLeft().isEmpty() && getShoulderEntityLeft().containsUuid("UUID") &&
-            getShoulderEntityLeft().getUuid("UUID").equals(petUUID)) {
-            setShoulderEntityLeft(new NbtCompound());
+        if (!getShoulderEntityLeft().isEmpty() && getShoulderEntityLeft().hasUUID("UUID") &&
+            getShoulderEntityLeft().getUUID("UUID").equals(petUUID)) {
+            setShoulderEntityLeft(new CompoundTag());
         }
-        if (!getShoulderEntityRight().isEmpty() && getShoulderEntityRight().containsUuid("UUID") &&
-            getShoulderEntityRight().getUuid("UUID").equals(petUUID)) {
-            setShoulderEntityRight(new NbtCompound());
+        if (!getShoulderEntityRight().isEmpty() && getShoulderEntityRight().hasUUID("UUID") &&
+            getShoulderEntityRight().getUUID("UUID").equals(petUUID)) {
+            setShoulderEntityRight(new CompoundTag());
         }
     }
 }

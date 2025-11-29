@@ -1,5 +1,6 @@
 package net.arcana.friendsforlife.mixin;
 
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -10,29 +11,29 @@ import net.arcana.friendsforlife.ModInit;
 import net.arcana.friendsforlife.accessors.MobEntityAccessor;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.goal.GoalSelector;
-import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
 
-@Mixin(MobEntity.class)
+@Mixin(Mob.class)
 public abstract class MobEntityMixin implements MobEntityAccessor {
+    @Final
     @Shadow
-    public GoalSelector goalSelector;
+    protected GoalSelector goalSelector;
 
     @Override
     public GoalSelector friendsforlife_getGoalSelector() {
         return this.goalSelector;
     }
 
-    // this does not work, gotta check to see if its overriden
-    @Inject(method = "canTarget", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canAttackType", at = @At("HEAD"), cancellable = true)
     private void stopTamedPetsAttacking(EntityType<?> type, CallbackInfoReturnable<Boolean> cir) {
-        MinecraftServer server = ((MobEntity) (Object) this).getWorld().getServer();
+        MinecraftServer server = ((Mob) (Object) this).level().getServer();
         if (server == null)
             return;
 
-        PetData trackedPetData = PetTracker.get(server).get(((MobEntity) (Object) this).getUuid());
+        PetData trackedPetData = PetTracker.get(server).get(((Mob) (Object) this).getUUID());
         if (trackedPetData != null) {
             cir.setReturnValue(false);
         }

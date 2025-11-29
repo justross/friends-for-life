@@ -1,17 +1,17 @@
 package net.arcana.friendsforlife;
 
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 
 public class Sounds {
     public static SoundEvent OCARINA = registerSound("ocarina");
     public static SoundEvent OCARINA_TWO = registerSound("ocarinatwo");
 
 	private static SoundEvent registerSound(String id) {
-		Identifier identifier = Identifier.of(ModInit.MOD_ID, id);
-		return Registry.register(Registries.SOUND_EVENT, identifier, SoundEvent.of(identifier));
+		ResourceLocation identifier = ResourceLocation.tryBuild(ModInit.MOD_ID, id);
+		return Registry.register(BuiltInRegistries.SOUND_EVENT, identifier, SoundEvent.createVariableRangeEvent(identifier));
 	}
 
 	public static void register() {

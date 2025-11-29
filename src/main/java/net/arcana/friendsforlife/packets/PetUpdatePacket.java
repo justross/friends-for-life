@@ -2,8 +2,7 @@ package net.arcana.friendsforlife.packets;
 
 import java.util.List;
 import java.util.UUID;
-
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 
 
 public record PetUpdatePacket(List<Entry> pets) {

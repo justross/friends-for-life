@@ -8,15 +8,15 @@ import org.jetbrains.annotations.Nullable;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
 import net.arcana.friendsforlife.packets.HomeRequestPacket;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 
 public class ClientHomeBlock {
 
     private static final List<Runnable> listeners = new ArrayList<>();
     private static @Nullable BlockPos blockPos;
-    private static @Nullable RegistryKey<World> dimension;
+    private static @Nullable ResourceKey<Level> dimension;
 
     static {
         // Subscribe to server updates once when class is loaded
@@ -37,7 +37,7 @@ public class ClientHomeBlock {
         listeners.clear();
     }
 
-    public static synchronized void set(BlockPos blockPos, RegistryKey<World> dim) {
+    public static synchronized void set(BlockPos blockPos, ResourceKey<Level> dim) {
         ClientHomeBlock.blockPos = blockPos;
         ClientHomeBlock.dimension = dim;
         notifyListeners();
@@ -48,7 +48,7 @@ public class ClientHomeBlock {
         return blockPos;
     }
 
-    public static synchronized RegistryKey<World> getDimKey() {
+    public static synchronized ResourceKey<Level> getDimKey() {
         return dimension;
     }
 

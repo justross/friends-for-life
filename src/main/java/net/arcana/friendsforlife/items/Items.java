@@ -5,16 +5,15 @@ import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemGroups;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.text.Text;
-import net.minecraft.util.DyeColor;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -27,46 +26,46 @@ public class Items {
 
             Item item = registerItem(
                     name,
-                    new OcarinaItem(new FabricItemSettings().maxCount(1)));
+                    new OcarinaItem(new FabricItemSettings().stacksTo(1)));
 
             COLORED_OCARINAS.put(color, item);
         }
     }
 
     public static final Item COLLAR = registerItem("collar",
-            new CollarItem(new FabricItemSettings().maxCount(1)));
+            new CollarItem(new FabricItemSettings().stacksTo(1)));
     public static final Item ROSTER = registerItem("pet_roster",
-            new RosterItem(new FabricItemSettings().maxCount(1)));
+            new RosterItem(new FabricItemSettings().stacksTo(1)));
     public static final Item OCARINA = registerItem("ocarina",
-            new OcarinaItem(new FabricItemSettings().maxCount(1)));
+            new OcarinaItem(new FabricItemSettings().stacksTo(1)));
 
-    public static final ItemGroup ITEMS = Registry.register(Registries.ITEM_GROUP,
-            new Identifier(ModInit.MOD_ID, "friendsforlife"), FabricItemGroup.builder()
-                    .displayName(Text.literal("Friends For Life"))
-                    .icon(() -> new ItemStack(COLLAR)).entries(((displayContext, entries) -> {
-                        entries.add(COLLAR);
-                        entries.add(ROSTER);
-                        entries.add(OCARINA);
+    public static final CreativeModeTab ITEMS = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB,
+            new ResourceLocation(ModInit.MOD_ID, "friendsforlife"), FabricItemGroup.builder()
+                    .title(Component.literal("Friends For Life"))
+                    .icon(() -> new ItemStack(COLLAR)).displayItems(((displayContext, entries) -> {
+                        entries.accept(COLLAR);
+                        entries.accept(ROSTER);
+                        entries.accept(OCARINA);
                         for (Item dyed : COLORED_OCARINAS.values()) {
-                            entries.add(dyed);
+                            entries.accept(dyed);
                         }
                     })).build());
 
     private static void addItemsToTab(FabricItemGroupEntries entries) {
-        entries.add(COLLAR);
-        entries.add(ROSTER);
-        entries.add(OCARINA);
+        entries.accept(COLLAR);
+        entries.accept(ROSTER);
+        entries.accept(OCARINA);
 
         for (Item dyed : COLORED_OCARINAS.values()) {
-            entries.add(dyed);
+            entries.accept(dyed);
         }
     }
 
     private static Item registerItem(String name, Item item) {
-        return Registry.register(Registries.ITEM, new Identifier(ModInit.MOD_ID, name), item);
+        return Registry.register(BuiltInRegistries.ITEM, new ResourceLocation(ModInit.MOD_ID, name), item);
     }
 
     public static void register() {
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(Items::addItemsToTab);
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(Items::addItemsToTab);
     }
 }

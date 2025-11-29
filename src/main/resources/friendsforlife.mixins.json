@@ -1,19 +1,19 @@
 {
-	"required": true,
-	"package": "net.arcana.friendsforlife.mixin",
-	"compatibilityLevel": "JAVA_17",
-	"mixins": [
-        "TameableEntityMixin",
-		"MobEntityMixin",
-		"PlayerEntityMixin",
-		"FollowOwnerGoalMixin",
-		"WanderAroundGoalMixin",
-		"ServerPlayerEntityMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	}
+  "required": true,
+  "package": "net.arcana.friendsforlife.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "TameableEntityMixin",
+    "MobEntityMixin",
+    "PlayerEntityMixin",
+    "FollowOwnerGoalMixin",
+    "WanderAroundGoalMixin",
+    "ServerPlayerEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
 }

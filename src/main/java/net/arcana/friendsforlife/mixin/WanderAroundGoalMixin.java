@@ -13,36 +13,32 @@ import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
-import net.minecraft.entity.ai.goal.WanderAroundGoal;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import net.minecraft.world.phys.Vec3;
 
-@Mixin(WanderAroundGoal.class)
+@Mixin(RandomStrollGoal.class)
 public abstract class WanderAroundGoalMixin {
     @Shadow
     @Final
-    private PathAwareEntity mob;
+    protected PathfinderMob mob;
 
-    @Shadow
-    @Nullable
-    protected abstract Vec3d getWanderTarget();
-
-    @Inject(method = "getWanderTarget", at = @At("RETURN"), cancellable = true)
-    private void clampWanderRadius(CallbackInfoReturnable<Vec3d> cir) {
-        Vec3d target = cir.getReturnValue();
+    @Inject(method = "getPosition", at = @At("RETURN"), cancellable = true)
+    private void clampWanderRadius(CallbackInfoReturnable<Vec3> cir) {
+        Vec3 target = cir.getReturnValue();
         if (target == null)
             return;
 
         // Clamp to radius of homeblock if forceWander is true
-        if (this.mob instanceof TameableEntity pet) {
+        if (this.mob instanceof TamableAnimal pet) {
             if (pet instanceof TameableEntityDecorator
                     && ((TameableEntityDecorator) pet).friendsforlife_isForceWander()) {
 
                 HomeBlockHandle home = null;
                 PetTracker tracker = PetTracker.get(pet.getServer());
-                PetData pd = tracker.getByEntityId(pet.getUuid());
+                PetData pd = tracker.getByEntityId(pet.getUUID());
 
                 // Check if pet has its own home, otherwise use default home
                 HomeBlockHandle petHbh = pd.getHomeBlock();
@@ -50,16 +46,16 @@ public abstract class WanderAroundGoalMixin {
                     home = petHbh;
                 } else {
                     HomeBlock homes = HomeBlock.get((MinecraftServer) pet.getServer());
-                    home = homes.getHome(pet.getServer(), (pet.getOwnerUuid()));
+                    home = homes.getHome(pet.getServer(), (pet.getOwnerUUID()));
                 }
 
                 if (home != null) {
-                    Vec3d homePos = Vec3d.ofCenter(home.pos());
+                    Vec3 homePos = Vec3.atCenterOf(home.pos());
                     double wanderRadius = 10; // Distance from home block pet can wander
 
                     if (target.distanceTo(homePos) > wanderRadius) {
-                        Vec3d direction = target.subtract(homePos).normalize();
-                        target = homePos.add(direction.multiply(wanderRadius));
+                        Vec3 direction = target.subtract(homePos).normalize();
+                        target = homePos.add(direction.scale(wanderRadius));
                         cir.setReturnValue(target);
                     }
                 }

@@ -7,7 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.arcana.friendsforlife.petdatabase.PetListUpdateEvents;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.player.LocalPlayer;
 
 public class ClientPetList {
 
@@ -39,9 +39,9 @@ public class ClientPetList {
         return List.copyOf(pets.values());
     }
 
-    public static synchronized List<ClientPetData> getAllForPlayer(ClientPlayerEntity player) {
+    public static synchronized List<ClientPetData> getAllForPlayer(LocalPlayer player) {
         return List.copyOf(pets.values().stream()
-                .filter(pet -> pet.getOwnerUuid().equals(player.getUuid()))
+                .filter(pet -> pet.getOwnerUuid().equals(player.getUUID()))
                 .toList());
     }
 

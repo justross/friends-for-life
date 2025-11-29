@@ -8,50 +8,49 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.registry.Registries;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.server.level.ServerPlayer;
 
 public class Commands {
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("listpets")
+            dispatcher.register(net.minecraft.commands.Commands.literal("listpets")
                     // /listpets → lists your own pets
                     .executes(Commands::listPetsSelf)
 
                     // /listpets <player> → lists another player's pets
-                    .then(CommandManager.argument("player", EntityArgumentType.player())
+                    .then(net.minecraft.commands.Commands.argument("player", EntityArgument.player())
                             .executes(Commands::listPetsOther)));
         });
     }
 
     // /listpets (no argument)
-    private static int listPetsSelf(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerPlayerEntity player = context.getSource().getPlayer();
+    private static int listPetsSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayer();
         return listPetsInternal(context.getSource(), player);
     }
 
     // /listpets <player>
-    private static int listPetsOther(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+    private static int listPetsOther(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(context, "player");
         return listPetsInternal(context.getSource(), player);
     }
 
     // Shared logic
-    private static int listPetsInternal(ServerCommandSource source, ServerPlayerEntity player) {
+    private static int listPetsInternal(CommandSourceStack source, ServerPlayer player) {
         MinecraftServer server = source.getServer();
         if (server == null)
             return 0;
 
         StringBuilder pets = new StringBuilder();
         List<PetData> petsList = PetTracker.get(server).getTrackedMap().values().stream()
-                .filter(p -> p.ownerUuid.equals(player.getUuid()))
+                .filter(p -> p.ownerUuid.equals(player.getUUID()))
                 .toList();
 
         for (int i = 0; i < petsList.size(); i++) {
@@ -63,7 +62,7 @@ public class Commands {
                 if (tame != null) {
                     // get custom name or default name if there is none
                     String name = tame.hasCustomName() ? tame.getCustomName().getString()
-                            : tame.getType().getName().getString();
+                            : tame.getType().getDescription().getString();
 
                     pets.append(name)
                             .append(": ");
@@ -71,8 +70,8 @@ public class Commands {
 
                     // name
                     String name = nbt.contains("CustomName")
-                            ? Text.Serializer.fromJson(nbt.getString("CustomName")).getString()
-                            : Registries.ENTITY_TYPE.get(new Identifier(nbt.getString("id"))).getName().getString();
+                            ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
+                            : BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(nbt.getString("id"))).getDescription().getString();
 
                     pets.append(name)
                             .append(": ");
@@ -86,7 +85,7 @@ public class Commands {
             }
         }
 
-        source.sendFeedback(() -> Text.literal(pets.toString()), false);
+        source.sendSuccess(() -> Component.literal(pets.toString()), false);
         return 1;
     }
 }

@@ -9,19 +9,19 @@ import org.jetbrains.annotations.Nullable;
 import net.arcana.friendsforlife.ModInit;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.storage.DimensionDataStorage;
 
-public class HomeBlock extends PersistentState {
-    public record HomeBlockHandle(BlockPos pos, RegistryKey<World> dim) {
+public class HomeBlock extends SavedData {
+    public record HomeBlockHandle(BlockPos pos, ResourceKey<Level> dim) {
     };
 
     private final Map<UUID, HomeBlockHandle> playerHomes = new HashMap<>();
@@ -29,23 +29,23 @@ public class HomeBlock extends PersistentState {
 
     // --- Access ---
     public static HomeBlock get(MinecraftServer server) {
-        PersistentStateManager manager = server.getOverworld().getPersistentStateManager();
-        return manager.getOrCreate(HomeBlock::fromNbt, HomeBlock::new, KEY);
+        DimensionDataStorage manager = server.overworld().getDataStorage();
+        return manager.computeIfAbsent(HomeBlock::fromNbt, HomeBlock::new, KEY);
     }
 
-    public static HomeBlock fromNbt(NbtCompound nbt) {
+    public static HomeBlock fromNbt(CompoundTag nbt) {
         HomeBlock state = new HomeBlock();
-        NbtCompound homes = nbt.getCompound("Homes");
-        for (String key : homes.getKeys()) {
+        CompoundTag homes = nbt.getCompound("Homes");
+        for (String key : homes.getAllKeys()) {
             try {
                 UUID uuid = UUID.fromString(key);
-                NbtCompound posTag = homes.getCompound(key);
+                CompoundTag posTag = homes.getCompound(key);
                 BlockPos pos = new BlockPos(
                         posTag.getInt("x"),
                         posTag.getInt("y"),
                         posTag.getInt("z"));
                 String dimStr = posTag.getString("dimension");
-                RegistryKey<World> dim = RegistryKey.of(RegistryKeys.WORLD, new Identifier(dimStr));
+                ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimStr));
                 state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
             } catch (Exception e) {
                 ModInit.LOGGER.error(ModInit.MOD_ID, "Skipped invalid home entry: " + key);
@@ -55,16 +55,16 @@ public class HomeBlock extends PersistentState {
     }
 
     @Override
-    public NbtCompound writeNbt(NbtCompound nbt) {
-        NbtCompound homes = new NbtCompound();
+    public CompoundTag save(CompoundTag nbt) {
+        CompoundTag homes = new CompoundTag();
         for (Map.Entry<UUID, HomeBlockHandle> e : playerHomes.entrySet()) {
             BlockPos pos = e.getValue().pos();
-            RegistryKey<World> dim = e.getValue().dim();
-            NbtCompound tag = new NbtCompound();
+            ResourceKey<Level> dim = e.getValue().dim();
+            CompoundTag tag = new CompoundTag();
             tag.putInt("x", pos.getX());
             tag.putInt("y", pos.getY());
             tag.putInt("z", pos.getZ());
-            tag.putString("dimension", dim.getValue().toString());
+            tag.putString("dimension", dim.location().toString());
             homes.put(e.getKey().toString(), tag);
         }
         nbt.put("Homes", homes);
@@ -72,25 +72,25 @@ public class HomeBlock extends PersistentState {
     }
 
     // --- API ---
-    public void setHome(ServerPlayerEntity player, BlockPos pos, RegistryKey<World> dim) {
-        playerHomes.put(player.getUuid(), new HomeBlockHandle(pos, dim));
+    public void setHome(ServerPlayer player, BlockPos pos, ResourceKey<Level> dim) {
+        playerHomes.put(player.getUUID(), new HomeBlockHandle(pos, dim));
 
-        Net.CHANNEL.serverHandle(player).send(new HomeUpdatePacket(pos, dim.getValue()));
+        Net.CHANNEL.serverHandle(player).send(new HomeUpdatePacket(pos, dim.location()));
 
-        markDirty(); // tells Minecraft to save this state
+        setDirty(); // tells Minecraft to save this state
     }
 
     @Nullable
     public HomeBlockHandle getHome(MinecraftServer server, UUID playerUuid) {
         var home = playerHomes.get(playerUuid);
         if (home == null) {
-            var player = server.getPlayerManager().getPlayer(playerUuid);
+            var player = server.getPlayerList().getPlayer(playerUuid);
             if (player != null) {
-                home = new HomeBlockHandle(player.getSpawnPointPosition(), player.getSpawnPointDimension());
+                home = new HomeBlockHandle(player.getRespawnPosition(), player.getRespawnDimension());
             }
         }
         if (home.pos() == null) {
-            home = new HomeBlockHandle(server.getOverworld().getSpawnPos(), server.getOverworld().getRegistryKey());
+            home = new HomeBlockHandle(server.overworld().getSharedSpawnPos(), server.overworld().dimension());
         }
         return home;
     }
@@ -99,10 +99,10 @@ public class HomeBlock extends PersistentState {
         return playerHomes.containsKey(playerUuid);
     }
 
-    public void removeHome(ServerPlayerEntity player) {
-        if (playerHomes.remove(player.getUuid()) != null) {
+    public void removeHome(ServerPlayer player) {
+        if (playerHomes.remove(player.getUUID()) != null) {
             Net.CHANNEL.serverHandle(player).send(new HomeUpdatePacket(null, null));
-            markDirty();
+            setDirty();
         }
     }
 }

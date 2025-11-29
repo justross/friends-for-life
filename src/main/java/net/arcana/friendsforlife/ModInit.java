@@ -20,14 +20,14 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 public class ModInit implements ModInitializer {
     public static final String MOD_ID = "friendsforlife";
@@ -38,6 +38,8 @@ public class ModInit implements ModInitializer {
     // It is considered best practice to use your mod id as the logger's name.
     // That way, it's clear which mod wrote info, warnings, and errors.
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    public static void initialize() {}
 
     @Override
     public void onInitialize() {
@@ -59,32 +61,32 @@ public class ModInit implements ModInitializer {
         // overwrite nbt methods
         UseEntityCallback.EVENT.register(((playerEntity, world, hand, entity, entityHitResult) -> {
             if (entityHitResult != null) {
-                return ActionResult.PASS;
+                return InteractionResult.PASS;
             }
-            if (world.isClient)
-                return ActionResult.PASS;
+            if (world.isClientSide)
+                return InteractionResult.PASS;
 
-            if (entity instanceof TameableEntity tame) {
-                if (!tame.isOwner(playerEntity))
-                    return ActionResult.PASS;
+            if (entity instanceof TamableAnimal tame) {
+                if (!tame.isOwnedBy(playerEntity))
+                    return InteractionResult.PASS;
 
-                ItemStack stack = playerEntity.getStackInHand(hand);
+                ItemStack stack = playerEntity.getItemInHand(hand);
                 PetTracker tracker = PetTracker.get(playerEntity.getServer());
                 PetData pd = tracker.get(((TameableEntityDecorator) tame).friendsforlife_getUuid());
                 if (stack.getItem() instanceof CollarItem collarItem && pd == null) {
-                    return collarItem.applyCollar(stack, (ServerPlayerEntity) playerEntity, tame);
-                } else if (stack.isEmpty() && playerEntity.isSneaking()) {
+                    return collarItem.applyCollar(stack, (ServerPlayer) playerEntity, tame);
+                } else if (stack.isEmpty() && playerEntity.isShiftKeyDown()) {
                     ItemStack collar = CollarItem.getCollar(playerEntity, tame, pd);
                     if (collar == null)
-                        return ActionResult.PASS;
+                        return InteractionResult.PASS;
                     if (pd == null) {
-                        ModInit.LOGGER.error(MOD_ID, "Unable to find PetData for tracked entity " + tame.getUuidAsString());
-                        return ActionResult.PASS;
+                        ModInit.LOGGER.error(MOD_ID, "Unable to find PetData for tracked entity " + tame.getStringUUID());
+                        return InteractionResult.PASS;
                     }
                     CollarItem.removePet(tame, pd);
 
-                    playerEntity.giveItemStack(collar);
-                    return ActionResult.CONSUME;
+                    playerEntity.addItem(collar);
+                    return InteractionResult.CONSUME;
                 }
 
                 if (stack.getItem() instanceof OcarinaItem ocarina && pd != null) {
@@ -92,7 +94,7 @@ public class ModInit implements ModInitializer {
                 }
 
             }
-            return ActionResult.PASS;
+            return InteractionResult.PASS;
         }));
 
         // Register a global receiver to handle pet tracker requests from clients
@@ -110,11 +112,11 @@ public class ModInit implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(Packets.REQUEST_PET_TELEPORT,
                 (server, player, handler, buf, responseSender) -> {
                     try {
-                        UUID petUuid = buf.readUuid();
+                        UUID petUuid = buf.readUUID();
                         int x = buf.readInt();
                         int y = buf.readInt();
                         int z = buf.readInt();
-                        Identifier dim = buf.readIdentifier();
+                        ResourceLocation dim = buf.readResourceLocation();
                         Boolean shouldWander = buf.readBoolean();
 
                         server.execute(() -> {
@@ -123,8 +125,8 @@ public class ModInit implements ModInitializer {
 
                                 PetTracker tracker = PetTracker.get(server);
                                 PetData petData = tracker.getTrackedMap().get(petUuid);
-                                TameableEntity entity = null;
-                                RegistryKey<World> targetWorldKey = RegistryKey.of(RegistryKeys.WORLD, dim);
+                                TamableAnimal entity = null;
+                                ResourceKey<Level> targetWorldKey = ResourceKey.create(Registries.DIMENSION, dim);
 
                                 if (petData != null) {
                                     entity = petData.recreateEntity(server, targetWorldKey, x, y, z);
@@ -137,7 +139,7 @@ public class ModInit implements ModInitializer {
                                     if (shouldWander) {
                                         TameableWanderHelper.makeTameableWander(entity);
                                     } else {
-                                        entity.setSitting(false);
+                                        entity.setOrderedToSit(false);
                                         TameableWanderHelper.stopWandering(entity);
                                     }
 
@@ -165,11 +167,11 @@ public class ModInit implements ModInitializer {
                 
         // Remove entities that have been duplicated and marked as such
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-            if (entity instanceof TameableEntity) {
+            if (entity instanceof TamableAnimal) {
                 PetTracker tracker = PetTracker.get(world.getServer());
                 Set<UUID> recreatedSet = tracker.getRecreatedMap();
-                if (recreatedSet.remove(entity.getUuid())) {
-                    tracker.markDirty();
+                if (recreatedSet.remove(entity.getUUID())) {
+                    tracker.setDirty();
                     world.getServer().execute(() -> entity.discard()); // run next tick
                 }
             }
@@ -177,11 +179,11 @@ public class ModInit implements ModInitializer {
 
         // Snapshot entity to PetData NBT when unloaded
         ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-            if (entity instanceof TameableEntity tame && !world.isClient) {
+            if (entity instanceof TamableAnimal tame && !world.isClientSide) {
                 PetTracker tracker = PetTracker.get(world.getServer());
-                PetData pd = tracker.getByEntityId(tame.getUuid());
+                PetData pd = tracker.getByEntityId(tame.getUUID());
                 if (pd != null) {
-                    pd.updateEntityData(nbt -> tame.writeNbt(nbt));
+                    pd.updateEntityData(nbt -> tame.saveWithoutId(nbt));
                 }
             }
         });

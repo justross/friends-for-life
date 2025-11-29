@@ -9,16 +9,16 @@ import java.util.UUID;
 import io.netty.buffer.Unpooled;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.OcarinaUpdatePacket;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.storage.DimensionDataStorage;
 
-public class OcarinaRegistry extends PersistentState {
+public class OcarinaRegistry extends SavedData {
 
     public static final UUID EMPTY_UUID = new UUID(0L, 0L);
 
@@ -26,9 +26,9 @@ public class OcarinaRegistry extends PersistentState {
     private final Map<UUID, UUID> ocarinaToPet = new HashMap<>();
 
     public static OcarinaRegistry get(MinecraftServer server) {
-        PersistentStateManager mgr = server.getWorld(World.OVERWORLD).getPersistentStateManager();
+        DimensionDataStorage mgr = server.getLevel(Level.OVERWORLD).getDataStorage();
 
-        return mgr.getOrCreate(
+        return mgr.computeIfAbsent(
                 OcarinaRegistry::fromNbt,
                 OcarinaRegistry::new,
                 "friendsforlife_ocarina_registry");
@@ -38,14 +38,14 @@ public class OcarinaRegistry extends PersistentState {
     }
 
     // ----------- LOADING ----------
-    public static OcarinaRegistry fromNbt(NbtCompound tag) {
+    public static OcarinaRegistry fromNbt(CompoundTag tag) {
         OcarinaRegistry reg = new OcarinaRegistry();
 
-        NbtList list = tag.getList("entries", NbtElement.COMPOUND_TYPE);
-        for (NbtElement e : list) {
-            NbtCompound c = (NbtCompound) e;
-            UUID ocarina = c.getUuid("ocarina");
-            UUID pet = c.getUuid("pet");
+        ListTag list = tag.getList("entries", Tag.TAG_COMPOUND);
+        for (Tag e : list) {
+            CompoundTag c = (CompoundTag) e;
+            UUID ocarina = c.getUUID("ocarina");
+            UUID pet = c.getUUID("pet");
             reg.ocarinaToPet.put(ocarina, pet);
         }
 
@@ -54,13 +54,13 @@ public class OcarinaRegistry extends PersistentState {
 
     // ----------- SAVING ----------
     @Override
-    public NbtCompound writeNbt(NbtCompound tag) {
-        NbtList list = new NbtList();
+    public CompoundTag save(CompoundTag tag) {
+        ListTag list = new ListTag();
 
         for (var entry : ocarinaToPet.entrySet()) {
-            NbtCompound c = new NbtCompound();
-            c.putUuid("ocarina", entry.getKey());
-            c.putUuid("pet", entry.getValue());
+            CompoundTag c = new CompoundTag();
+            c.putUUID("ocarina", entry.getKey());
+            c.putUUID("pet", entry.getValue());
             list.add(c);
         }
 
@@ -69,12 +69,12 @@ public class OcarinaRegistry extends PersistentState {
     }
 
     /** Writes the full registry into a PacketByteBuf */
-    public PacketByteBuf serializeList() {
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    public FriendlyByteBuf serializeList() {
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         buf.writeInt(ocarinaToPet.size());
         for (Map.Entry<UUID, UUID> entry : ocarinaToPet.entrySet()) {
-            buf.writeUuid(entry.getKey());
-            buf.writeUuid(entry.getValue());
+            buf.writeUUID(entry.getKey());
+            buf.writeUUID(entry.getValue());
         }
         return buf;
     }
@@ -83,12 +83,12 @@ public class OcarinaRegistry extends PersistentState {
 
     public void register(UUID ocarinaUuid, UUID petUuid, MinecraftServer server) {
         ocarinaToPet.put(ocarinaUuid, petUuid);
-        markDirty();
+        setDirty();
 
         // Send update to all connected clients
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        buf.writeUuid(ocarinaUuid);
-        buf.writeUuid(petUuid);
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+        buf.writeUUID(ocarinaUuid);
+        buf.writeUUID(petUuid);
 
         Net.CHANNEL.serverHandle(server).send(new OcarinaUpdatePacket(ocarinaUuid, petUuid));
     }
@@ -96,7 +96,7 @@ public class OcarinaRegistry extends PersistentState {
     public void unregisterOcarina(UUID ocarinaUuid, MinecraftServer server) {
         ocarinaToPet.remove(ocarinaUuid);
         Net.CHANNEL.serverHandle(server).send(new OcarinaUpdatePacket(ocarinaUuid, null));
-        markDirty();
+        setDirty();
     }
 
     public List<UUID> getOcarinasForPet(UUID petUuid) {
@@ -130,7 +130,7 @@ public class OcarinaRegistry extends PersistentState {
                     new OcarinaUpdatePacket(ocarinaUuid, EMPTY_UUID));
         }
 
-        markDirty();
+        setDirty();
     }
 
 }

@@ -2,7 +2,8 @@ import org.gradle.internal.declarativedsl.parsing.main
 
 plugins {
     id("fabric-loom") version "1.3.+"
-    id("dev.isxander.modstitch.base") version "0.5.12"}
+    id("dev.isxander.modstitch.base") version "0.5.12"
+}
 
 fun prop(name: String, consumer: (prop: String) -> Unit) {
     (findProperty(name) as? String?)
@@ -46,12 +47,14 @@ modstitch {
             // You can put any other replacement properties/metadata here that
             // modstitch doesn't initially support. Some examples below.
             put("mod_issue_tracker", "https://github.com/justross/friends-for-life/issues")
-            put("pack_format", when (property("deps.minecraft")) {
-                "1.20.1" -> 15
-                "1.21.1" -> 46
-                "1.21.10" -> 46
-                else -> throw IllegalArgumentException("Please store the resource pack version for ${property("deps.minecraft")} in build.gradle.kts! https://minecraft.wiki/w/Pack_format")
-            }.toString())
+            put(
+                "pack_format", when (property("deps.minecraft")) {
+                    "1.20.1" -> 15
+                    "1.21.1" -> 46
+                    "1.21.10" -> 46
+                    else -> throw IllegalArgumentException("Please store the resource pack version for ${property("deps.minecraft")} in build.gradle.kts! https://minecraft.wiki/w/Pack_format")
+                }.toString()
+            )
         }
     }
 
@@ -63,6 +66,16 @@ modstitch {
 
         // Configure loom like normal in this block.
         configureLoom {
+            runs {
+                maybeCreate("client").apply {
+                    property("fabric.development", "true")
+                    programArgs("--username", "TestPlayer")
+                }
+
+                maybeCreate("server").apply {
+                    property("fabric.development", "true")
+                }
+            }
         }
     }
 

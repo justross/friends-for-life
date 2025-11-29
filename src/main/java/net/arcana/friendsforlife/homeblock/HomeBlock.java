@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import org.jetbrains.annotations.Nullable;
 
-import net.arcana.friendsforlife.ModInit;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
 import net.minecraft.core.BlockPos;
@@ -48,7 +48,7 @@ public class HomeBlock extends SavedData {
                 ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimStr));
                 state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
             } catch (Exception e) {
-                ModInit.LOGGER.error(ModInit.MOD_ID, "Skipped invalid home entry: " + key);
+                FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Skipped invalid home entry: " + key);
             }
         }
         return state;

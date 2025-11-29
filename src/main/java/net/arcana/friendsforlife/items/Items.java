@@ -1,6 +1,6 @@
 package net.arcana.friendsforlife.items;
 
-import net.arcana.friendsforlife.ModInit;
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries;
@@ -40,7 +40,7 @@ public class Items {
             new OcarinaItem(new FabricItemSettings().stacksTo(1)));
 
     public static final CreativeModeTab ITEMS = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB,
-            new ResourceLocation(ModInit.MOD_ID, "friendsforlife"), FabricItemGroup.builder()
+            new ResourceLocation(FabricEntrypoint.MOD_ID, "friendsforlife"), FabricItemGroup.builder()
                     .title(Component.literal("Friends For Life"))
                     .icon(() -> new ItemStack(COLLAR)).displayItems(((displayContext, entries) -> {
                         entries.accept(COLLAR);
@@ -62,7 +62,7 @@ public class Items {
     }
 
     private static Item registerItem(String name, Item item) {
-        return Registry.register(BuiltInRegistries.ITEM, new ResourceLocation(ModInit.MOD_ID, name), item);
+        return Registry.register(BuiltInRegistries.ITEM, new ResourceLocation(FabricEntrypoint.MOD_ID, name), item);
     }
 
     public static void register() {

@@ -8,11 +8,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import org.jetbrains.annotations.Nullable;
 
 import io.netty.buffer.Unpooled;
 import net.arcana.friendsforlife.Packets;
-import net.arcana.friendsforlife.ModInit;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -35,7 +35,7 @@ public class PetTracker extends SavedData {
     private final Set<UUID> recreated = new HashSet<>(); // Entities that have been recreated and must be removed
 
     public void addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
-        ModInit.LOGGER.info("adding new entity to be tracked: " + tame.getName());
+        FabricEntrypoint.LOGGER.info("adding new entity to be tracked: " + tame.getName());
         if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUUID()))) {
             CompoundTag collar = new CompoundTag();
             item.save(collar);
@@ -54,7 +54,7 @@ public class PetTracker extends SavedData {
         }
         tracked.remove(uuid);
         if (player == null) {
-            ModInit.LOGGER.error(ModInit.MOD_ID, "Could not find player to update pet list for removed pet: " + uuid);
+            FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Could not find player to update pet list for removed pet: " + uuid);
             return;
         }
         var petList = PetTracker.serializePetList(server);

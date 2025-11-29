@@ -83,7 +83,7 @@ public class FabricEntrypoint implements ModInitializer {
                     if (collar == null)
                         return InteractionResult.PASS;
                     if (pd == null) {
-                        ModInit.LOGGER.error(MOD_ID, "Unable to find PetData for tracked entity " + tame.getStringUUID());
+                        FabricEntrypoint.LOGGER.error(MOD_ID, "Unable to find PetData for tracked entity " + tame.getStringUUID());
                         return InteractionResult.PASS;
                     }
                     CollarItem.removePet(tame, pd);
@@ -135,7 +135,7 @@ public class FabricEntrypoint implements ModInitializer {
                                     entity = petData.recreateEntity(server, targetWorldKey, x, y, z);
 
                                     if (entity == null) {
-                                        ModInit.LOGGER.error(MOD_ID, "Failed to recreate entity for pet UUID: " + petUuid);
+                                        FabricEntrypoint.LOGGER.error(MOD_ID, "Failed to recreate entity for pet UUID: " + petUuid);
                                         return;
                                     }
 
@@ -147,14 +147,14 @@ public class FabricEntrypoint implements ModInitializer {
                                     }
 
                                 } else {
-                                    ModInit.LOGGER.error(MOD_ID, "No pet data found for UUID: " + petUuid);
+                                    FabricEntrypoint.LOGGER.error(MOD_ID, "No pet data found for UUID: " + petUuid);
                                 }
 
                                 teleportLocks.remove(petUuid);
                             }
                         });
                     } catch (Exception e) {
-                        ModInit.LOGGER.error(MOD_ID, "Bad summon packet from " + player.getName().getString() + ": " + e);
+                        FabricEntrypoint.LOGGER.error(MOD_ID, "Bad summon packet from " + player.getName().getString() + ": " + e);
                     }
                 });
 

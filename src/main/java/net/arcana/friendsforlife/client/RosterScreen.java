@@ -232,7 +232,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         newEntityBox.scaleToFit(true);
 
         // Update customName
-        LabelComponent nameLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "pet-customName-label");
+        LabelComponent nameLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "pet-name-label");
         if (nameLabel != null) {
             String clipped = Minecraft.getInstance().font.plainSubstrByWidth(
                     Component.literal(newPet.getName()).getString(),

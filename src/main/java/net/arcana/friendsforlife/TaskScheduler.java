@@ -1,10 +1,10 @@
 package net.arcana.friendsforlife;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 public class TaskScheduler {
 

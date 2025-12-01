@@ -1,12 +1,12 @@
 package net.arcana.friendsforlife;
 
-import java.util.ArrayList;
-
 import net.arcana.friendsforlife.accessors.MobEntityAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+
+import java.util.ArrayList;
 
 public class TameableWanderHelper {
 

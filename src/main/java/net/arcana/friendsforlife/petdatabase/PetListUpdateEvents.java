@@ -1,11 +1,11 @@
 package net.arcana.friendsforlife.petdatabase;
 
+import net.arcana.friendsforlife.client.ClientPetData;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
-
-import net.arcana.friendsforlife.client.ClientPetData;
 
 public class PetListUpdateEvents {
 

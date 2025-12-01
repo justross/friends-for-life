@@ -1,22 +1,16 @@
 package net.arcana.friendsforlife.petdatabase;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import io.netty.buffer.Unpooled;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.OcarinaUpdatePacket;
+import net.arcana.friendsforlife.util.SavedData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+
+import java.util.*;
 
 public class OcarinaRegistry extends SavedData {
 
@@ -26,15 +20,21 @@ public class OcarinaRegistry extends SavedData {
     private final Map<UUID, UUID> ocarinaToPet = new HashMap<>();
 
     public static OcarinaRegistry get(MinecraftServer server) {
-        DimensionDataStorage mgr = server.getLevel(Level.OVERWORLD).getDataStorage();
-
-        return mgr.computeIfAbsent(
-                OcarinaRegistry::fromNbt,
-                OcarinaRegistry::new,
-                "friendsforlife_ocarina_registry");
+        return SavedData.get(server, "friendsforlife_ocarina_registry",
+                OcarinaRegistry::fromNbt, OcarinaRegistry::new);
+//        DimensionDataStorage mgr = server.getLevel(Level.OVERWORLD).getDataStorage();
+//
+//        return mgr.computeIfAbsent(
+//                OcarinaRegistry::fromNbt,
+//                OcarinaRegistry::new,
+//                "friendsforlife_ocarina_registry");
     }
 
     public OcarinaRegistry() {
+    }
+
+    public Map<UUID, UUID> getMap() {
+        return ocarinaToPet;
     }
 
     // ----------- LOADING ----------
@@ -68,7 +68,9 @@ public class OcarinaRegistry extends SavedData {
         return tag;
     }
 
-    /** Writes the full registry into a PacketByteBuf */
+    /**
+     * Writes the full registry into a PacketByteBuf
+     */
     public FriendlyByteBuf serializeList() {
         FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         buf.writeInt(ocarinaToPet.size());

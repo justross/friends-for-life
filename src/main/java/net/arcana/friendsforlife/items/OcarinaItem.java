@@ -1,12 +1,7 @@
 package net.arcana.friendsforlife.items;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.jetbrains.annotations.Nullable;
-
-import net.arcana.friendsforlife.Sounds;
 import net.arcana.friendsforlife.RaycastHelper;
+import net.arcana.friendsforlife.Sounds;
 import net.arcana.friendsforlife.TameableWanderHelper;
 import net.arcana.friendsforlife.TaskScheduler;
 import net.arcana.friendsforlife.client.ClientOcarinaRegistry;
@@ -38,6 +33,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.UUID;
 
 public class OcarinaItem extends Item {
     public OcarinaItem(Properties settings) {
@@ -202,7 +201,7 @@ public class OcarinaItem extends Item {
         // if (petUuid != null) {
         // ClientPetData pd = ClientPetList.getPet(petUuid);
         // if (pd != null) {
-        // tooltip.add(Text.literal(pd.name).formatted(Formatting.AQUA));
+        // tooltip.add(Text.literal(pd.customName).formatted(Formatting.AQUA));
         // }
         // }
         // }
@@ -237,7 +236,7 @@ public class OcarinaItem extends Item {
             if (petUuid != null) {
                 ClientPetData pd = ClientPetList.getPet(petUuid);
                 if (pd != null) {
-                    return pd.name;
+                    return pd.getName();
                 }
             }
         }

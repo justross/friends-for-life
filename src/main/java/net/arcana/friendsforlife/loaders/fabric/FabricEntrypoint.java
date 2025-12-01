@@ -1,7 +1,6 @@
 //? if fabric {
 package net.arcana.friendsforlife.loaders.fabric;
 
-import com.mojang.logging.LogUtils;
 import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.items.CollarItem;
@@ -15,14 +14,10 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +32,7 @@ public class FabricEntrypoint implements ModInitializer {
     private final Map<UUID, Object> teleportLocks = new ConcurrentHashMap<>();
 
     // This logger is used to write text to the console and the log file.
-    // It is considered best practice to use your mod id as the logger's name.
+    // It is considered best practice to use your mod id as the logger's customName.
     // That way, it's clear which mod wrote info, warnings, and errors.
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
@@ -100,79 +95,11 @@ public class FabricEntrypoint implements ModInitializer {
             return InteractionResult.PASS;
         }));
 
-        // Register a global receiver to handle pet tracker requests from clients
-        ServerPlayNetworking.registerGlobalReceiver(Packets.REQUEST_PET_TRACKER,
-                (server, player, handler, buf, responseSender) -> {
-                    server.execute(() -> {
-                        var petList = PetTracker.serializePetList(server);
-
-                        // send back to the client
-                        ServerPlayNetworking.send(player, Packets.RESPONSE_PET_TRACKER, petList);
-                    });
-                });
-
-        // Register a global receiver to handle pet summon requests from clients
-        ServerPlayNetworking.registerGlobalReceiver(Packets.REQUEST_PET_TELEPORT,
-                (server, player, handler, buf, responseSender) -> {
-                    try {
-                        UUID petUuid = buf.readUUID();
-                        int x = buf.readInt();
-                        int y = buf.readInt();
-                        int z = buf.readInt();
-                        ResourceLocation dim = buf.readResourceLocation();
-                        Boolean shouldWander = buf.readBoolean();
-
-                        server.execute(() -> {
-                            Object lock = teleportLocks.computeIfAbsent(petUuid, k -> new Object());
-                            synchronized (lock) {
-
-                                PetTracker tracker = PetTracker.get(server);
-                                PetData petData = tracker.getTrackedMap().get(petUuid);
-                                TamableAnimal entity = null;
-                                ResourceKey<Level> targetWorldKey = ResourceKey.create(Registries.DIMENSION, dim);
-
-                                if (petData != null) {
-                                    entity = petData.recreateEntity(server, targetWorldKey, x, y, z);
-
-                                    if (entity == null) {
-                                        FabricEntrypoint.LOGGER.error(MOD_ID, "Failed to recreate entity for pet UUID: " + petUuid);
-                                        return;
-                                    }
-
-                                    if (shouldWander) {
-                                        TameableWanderHelper.makeTameableWander(entity);
-                                    } else {
-                                        entity.setOrderedToSit(false);
-                                        TameableWanderHelper.stopWandering(entity);
-                                    }
-
-                                } else {
-                                    FabricEntrypoint.LOGGER.error(MOD_ID, "No pet data found for UUID: " + petUuid);
-                                }
-
-                                teleportLocks.remove(petUuid);
-                            }
-                        });
-                    } catch (Exception e) {
-                        FabricEntrypoint.LOGGER.error(MOD_ID, "Bad summon packet from " + player.getName().getString() + ": " + e);
-                    }
-                });
-
-        ServerPlayNetworking.registerGlobalReceiver(Packets.REQUEST_OCARINA_REGISTRY,
-                (server, player, handler, buf, responseSender) -> {
-                    server.execute(() -> {
-                        var ocarinaList = OcarinaRegistry.get(server).serializeList();
-
-                        // send back to the client
-                        ServerPlayNetworking.send(player, Packets.REQUEST_OCARINA_REGISTRY, ocarinaList);
-                    });
-                });
-
         // Remove entities that have been duplicated and marked as such
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             if (entity instanceof TamableAnimal) {
                 PetTracker tracker = PetTracker.get(world.getServer());
-                Set<UUID> recreatedSet = tracker.getRecreatedMap();
+                Set<UUID> recreatedSet = tracker.getRecreatedEntityMap();
                 if (recreatedSet.remove(entity.getUUID())) {
                     tracker.setDirty();
                     world.getServer().execute(() -> entity.discard()); // run next tick

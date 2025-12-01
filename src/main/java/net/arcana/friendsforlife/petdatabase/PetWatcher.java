@@ -1,21 +1,15 @@
 package net.arcana.friendsforlife.petdatabase;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import io.netty.buffer.Unpooled;
-import net.arcana.friendsforlife.Packets;
+import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.PetUpdatePacket;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+
+import java.util.*;
 
 public class PetWatcher {
     private static int tickCounter = 0;
@@ -31,54 +25,49 @@ public class PetWatcher {
 
         PetTracker tracker = PetTracker.get(server);
 
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        boolean changed = false;
+        List<PetUpdatePacket.Entry> updatedPets = tracker.getTrackedMap().values().stream()
+                .filter((petData) -> {
+                    UUID petUuid = petData.uuid;
 
-        for (Map.Entry<UUID, PetData> entry : tracker.getTrackedMap().entrySet()) {
-            UUID petUuid = entry.getKey();
-            PetData petdata = entry.getValue();
-            boolean petChanged = false;
+                    boolean petChanged = false;
 
-            Entity entity = petdata.getEntity(server).join().entity();
-            if (entity == null)
-                continue;
+                    Entity entity = petData.getEntity(server).join().entity();
 
-            // --- Position check ---
-            BlockPos newPos = entity.blockPosition();
-            if (!newPos.equals(petdata.position)) {
-                petdata.position = newPos;
-                changed = true;
-                petChanged = true;
-            }
 
-            // --- Name check ---
-            // compare the CustomName stored in petdata NBT with the entity's current custom
-            // name
-            CompoundTag nbtSnapshot = petdata.getEntityData();
-            String oldName = nbtSnapshot.getString("CustomName"); // JSON stored in NBT
-            String newName = entity.getCustomName() != null ? entity.getCustomName().toString() : "";
+                    if (entity == null)
+                        return false; // If there is no entity then there is no chance this could be updated.
 
-            if (!newName.equals(oldName)) {
-                petdata.updateEntityData(nbt -> entity.saveWithoutId(nbt)); // overwrite snapshot with current NBT
-                changed = true;
-                petChanged = true;
-            }
+                    // --- Position check ---
+                    BlockPos newPos = entity.blockPosition();
+                    if (!newPos.equals(petData.position)) {
+                        petData.position = newPos;
+                        petChanged = true;
+                    }
 
-            if (!petChanged) {
-                continue;
-            }
+                    // --- Name check ---
+                    // compare the CustomName stored in pet data NBT with the entity's current custom customName
+                    CompoundTag nbtSnapshot = petData.getEntityData();
+                    String oldName = nbtSnapshot.getString("CustomName"); // JSON stored in NBT
+                    String newName = entity.getCustomName() != null ? entity.getCustomName().toString() : "";
 
-            buf.writeUUID(petUuid);
-            buf.writeUtf(entity.getCustomName() != null ? entity.getCustomName().getString() : "");
-            buf.writeBlockPos(petdata.position);
-        }
+                    if (!newName.equals(oldName)) {
+                        petData.updateEntityData(entity::saveWithoutId); // overwrite snapshot with current NBT
+                        petChanged = true;
+                    }
 
-        if (changed) {
-            // --- Send packet ---
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    return petChanged;
+                })
+                .map(pd -> {
+                    Component customName = Objects.requireNonNull(pd.getEntity(server).join().entity()).getCustomName();
+                    String name = customName != null ? Component.Serializer.toJson(customName) : "";
 
-                ServerPlayNetworking.send(player, Packets.RESPONSE_PET_UPDATE, new FriendlyByteBuf(buf.copy()));
-            }
+                    return new PetUpdatePacket.Entry(pd.uuid, name, pd.position);
+                })
+                .toList();
+
+
+        if (!updatedPets.isEmpty()) {
+            Net.CHANNEL.serverHandle(server).send(new PetUpdatePacket(updatedPets));
         }
         tracker.setDirty();
     }

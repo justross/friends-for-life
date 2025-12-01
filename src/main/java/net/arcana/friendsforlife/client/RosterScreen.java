@@ -1,11 +1,5 @@
 package net.arcana.friendsforlife.client;
 
-import java.util.List;
-
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
-import org.jetbrains.annotations.Nullable;
-
-import io.netty.buffer.Unpooled;
 import io.wispforest.owo.ui.base.BaseUIModelScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
@@ -14,30 +8,29 @@ import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.StackLayout;
-import io.wispforest.owo.ui.core.Color;
-import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.Insets;
-import io.wispforest.owo.ui.core.Sizing;
-import io.wispforest.owo.ui.core.Surface;
-import net.arcana.friendsforlife.Packets;
+import io.wispforest.owo.ui.core.*;
+import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
+import net.arcana.friendsforlife.packets.PetListRequestPacket;
+import net.arcana.friendsforlife.packets.PetTeleportRequestPacket;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.DyeColor;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class RosterScreen extends BaseUIModelScreen<StackLayout> {
-    private int currentPetIndex;
-
     private EntityComponent<Entity> entityBox;
 
     private @Nullable StackLayout entityBoxContainer;
@@ -54,7 +47,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     private List<ClientPetData> pets;
 
     public RosterScreen() {
-        super(StackLayout.class, DataSource.asset(new ResourceLocation("friendsforlife", "roster")));
+        super(StackLayout.class, DataSource.asset(new CompatResourceLocation("friendsforlife", "roster").unwrap()));
     }
 
     // @Override
@@ -62,20 +55,21 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         super.init();
 
         // Request pets from server
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        ClientPlayNetworking.send(Packets.REQUEST_PET_TRACKER, buf);
+        Net.CHANNEL.clientHandle().send(new PetListRequestPacket());
 
-        this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
-                "home-position-label");
+        this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "home-position-label");
+        assert homeLabel != null;
 
         this.homeButton = this.uiAdapter.rootComponent.childById(ButtonComponent.class, "home-button");
-        this.defaultHomeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
-                "default-home-label");
+        assert homeButton != null;
+
+        this.defaultHomeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "default-home-label");
+        assert defaultHomeLabel != null;
 
         // Listen for default home block update
         homeUpdateListener = (uuid, newHomePos, newDim) -> {
             LocalPlayer player = Minecraft.getInstance().player;
-            if (uuid.equals(player.getUUID())) {
+            if (uuid.equals(player != null ? player.getUUID() : null)) {
                 if (currentPet != null && currentPet.homePosition == null) {
                     homeLabel.text(Component.literal(newHomePos.toShortString()));
                     homeButton.visible = true;
@@ -87,7 +81,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         HomeBlockUpdateEvents.subscribe(homeUpdateListener);
 
         // Get home position
-        BlockPos homePos = null;
+        BlockPos homePos;
         if (currentPet != null && currentPet.homePosition != null && currentPet.homeDimension != null) {
             homePos = currentPet.homePosition;
         } else {
@@ -102,6 +96,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         }
 
         BlockPos defaultHomePos = ClientHomeBlock.get();
+        assert defaultHomeLabel != null;
         defaultHomeLabel.text(Component.literal(defaultHomePos.toShortString()));
 
         // Subscribe for live updates
@@ -109,9 +104,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         this.entityBoxContainer = this.uiAdapter.rootComponent.childById(StackLayout.class, "entity-box-container");
 
-        minecraft.execute(() -> {
-            fetchPetList();
-        });
+        assert minecraft != null;
+        minecraft.execute(this::fetchPetList);
     }
 
     @Override
@@ -119,10 +113,11 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         // Summon button
         this.summonButton = rootComponent.childById(ButtonComponent.class, "summon-button");
+        assert summonButton != null;
 
         summonButton.onPress(button -> {
             if (currentPet == null) {
-                FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Unable to find current pet.");
+                FabricEntrypoint.LOGGER.error("Unable to find current pet.");
                 return;
             }
 
@@ -131,38 +126,30 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             if (mc.player == null)
                 return;
             BlockPos pos = mc.player.blockPosition();
-            int x = pos.getX();
-            int y = pos.getY();
-            int z = pos.getZ();
-            boolean shouldSit = false;
             ResourceLocation dim = mc.player.level().dimension().location();
 
-            // Send teleport packet
-            FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-            buf.writeUUID(currentPet.uuid);
-            buf.writeInt(x);
-            buf.writeInt(y);
-            buf.writeInt(z);
-            buf.writeResourceLocation(dim);
-            buf.writeBoolean(shouldSit);
-
-            ClientPlayNetworking.send(Packets.REQUEST_PET_TELEPORT, buf);
+            var packet = new PetTeleportRequestPacket(currentPet.uuid, pos, dim, false);
+            Net.CHANNEL.clientHandle().send(packet);
         });
 
         summonButton.visible = currentPet != null;
 
         // Home button
         this.homeButton = this.uiAdapter.rootComponent.childById(ButtonComponent.class, "home-button");
-        this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "home-position-label");
+        assert homeButton != null;
         homeButton.visible = currentPet != null;
+
+        this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "home-position-label");
+        assert homeLabel != null;
+
         if (currentPet == null) {
             homeLabel.text(Component.literal(""));
         }
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             this.homeButton.onPress(button -> {
-                BlockPos homePos = null;
-                ResourceLocation dimId = null;
+                BlockPos homePos;
+                ResourceLocation dimId;
                 if (currentPet.homePosition != null && currentPet.homeDimension != null) {
                     homePos = currentPet.homePosition;
                     dimId = currentPet.homeDimension;
@@ -176,25 +163,14 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
                 assert currentPet != null;
 
-                int x = homePos.getX();
-                int y = homePos.getY();
-                int z = homePos.getZ();
-                boolean shouldWander = true;
+                var packet = new PetTeleportRequestPacket(currentPet.uuid, homePos, dimId, true);
+                Net.CHANNEL.clientHandle().send(packet);
 
-                // Send teleport packet
-                FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-                buf.writeUUID(currentPet.uuid);
-                buf.writeInt(x);
-                buf.writeInt(y);
-                buf.writeInt(z);
-                buf.writeResourceLocation(dimId);
-                buf.writeBoolean(shouldWander);
-
-                ClientPlayNetworking.send(Packets.REQUEST_PET_TELEPORT, buf);
             });
         }
 
         StackLayout container = rootComponent.childById(StackLayout.class, "entity-box-container");
+        assert container != null;
 
         // Remove old entity component if present
         if (!container.children().isEmpty()) {
@@ -209,35 +185,45 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         }
 
         // Close button
-        rootComponent.childById(ButtonComponent.class, "close-button").onPress(button -> {
-            onClose();
-        });
+        ButtonComponent buttonComponent = rootComponent.childById(ButtonComponent.class, "close-button");
+        if (buttonComponent != null) {
+            buttonComponent.onPress(button -> {
+                onClose();
+            });
+        }
 
     }
 
     // Update the current pet
     @SuppressWarnings("unchecked")
-    @Nullable
     protected void updateCurrentPet(ClientPetData newPet) {
         if (newPet == null) {
             this.currentPet = null;
-            this.currentPetIndex = -1;
-            this.summonButton.visible = false;
-            this.homeButton.visible = false;
+            if (this.summonButton != null) {
+                this.summonButton.visible = false;
+            }
+            if (this.homeButton != null) {
+                this.homeButton.visible = false;
+            }
             return;
         }
 
         assert pets != null;
 
-        this.currentPetIndex = pets.indexOf(newPet);
         this.currentPet = newPet;
 
         // Update command buttons
-        this.summonButton.visible = true;
-        this.homeButton.visible = true;
+        if (this.summonButton != null) {
+            this.summonButton.visible = true;
+        }
+        if (this.homeButton != null) {
+            this.homeButton.visible = true;
+        }
 
         // Update entity box
-        entityBoxContainer.removeChild(entityBox);
+        if (entityBoxContainer != null) {
+            entityBoxContainer.removeChild(entityBox);
+        }
         var newEntityBox = Components.entity(Sizing.fixed(50), (EntityType<Entity>) newPet.type,
                 newPet.getRenderingEntity(Minecraft.getInstance().level).saveWithoutId(new CompoundTag()));
         entityBox = newEntityBox;
@@ -245,28 +231,38 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         newEntityBox.lookAtCursor(true);
         newEntityBox.scaleToFit(true);
 
-        // Update name
-        LabelComponent nameLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "pet-name-label");
-        String clipped = Minecraft.getInstance().font.plainSubstrByWidth(
-                Component.literal(newPet.name).getString(),
-                nameLabel.maxWidth());
-        nameLabel.text(Component.literal(clipped));
-        nameLabel.tooltip(Component.literal(newPet.name));
+        // Update customName
+        LabelComponent nameLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "pet-customName-label");
+        if (nameLabel != null) {
+            String clipped = Minecraft.getInstance().font.plainSubstrByWidth(
+                    Component.literal(newPet.getName()).getString(),
+                    nameLabel.maxWidth());
+            nameLabel.text(Component.literal(clipped));
+            nameLabel.tooltip(Component.literal(newPet.getName()));
+        }
 
         // Update positions
         LabelComponent positionLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
                 "pet-position-label");
-        positionLabel.text(Component.literal(newPet.position));
+        if (positionLabel != null) {
+            positionLabel.text(Component.literal(newPet.position));
+        }
         this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class,
                 "home-position-label");
 
-        BlockPos homePos = null;
+        BlockPos homePos;
         if (currentPet.homePosition != null) {
             homePos = currentPet.homePosition;
         } else {
             homePos = ClientHomeBlock.get();
         }
-        this.homeLabel.text(Component.literal(homePos.toShortString()));
+        if (this.homeLabel != null) {
+            if (homePos != null) {
+                this.homeLabel.text(Component.literal(homePos.toShortString()));
+            } else {
+                FabricEntrypoint.LOGGER.warn("Expected home position to be defined.");
+            }
+        }
     }
 
     public void setPets(List<ClientPetData> pets) {
@@ -287,7 +283,9 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         FlowLayout petListContainer = uiAdapter.rootComponent.childById(FlowLayout.class, "pet-list");
 
         // Clear old buttons if necessary
-        petListContainer.clearChildren();
+        if (petListContainer != null) {
+            petListContainer.clearChildren();
+        }
 
         // Generate buttons for all pets
         for (ClientPetData pet : pets) {
@@ -301,7 +299,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             StackLayout wrapper = Containers.stack(Sizing.fill(95), Sizing.content());
             wrapper.surface(Surface.flat(normalBg));
 
-            LabelComponent label = (LabelComponent) Components.label(Component.literal(" " + pet.name))
+            LabelComponent label = (LabelComponent) Components.label(Component.literal(" " + pet.getName()))
                     .cursorStyle(CursorStyle.HAND)
                     .horizontalSizing(Sizing.fill(100))
                     .margins(Insets.vertical(2));
@@ -328,7 +326,9 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
             wrapper.child(label);
 
-            petListContainer.child(wrapper);
+            if (petListContainer != null) {
+                petListContainer.child(wrapper);
+            }
         }
 
     }

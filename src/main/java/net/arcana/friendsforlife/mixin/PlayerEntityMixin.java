@@ -1,13 +1,12 @@
 package net.arcana.friendsforlife.mixin;
 
-import java.util.UUID;
-
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+
+import java.util.UUID;
 
 @Mixin(Player.class)
 public abstract class PlayerEntityMixin implements ShoulderAccessor {

@@ -1,14 +1,9 @@
 package net.arcana.friendsforlife.items;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
-import org.jetbrains.annotations.Nullable;
-
 import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
@@ -18,7 +13,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -33,6 +27,11 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 public class CollarItem extends Item {
     private static final String UUIDtag = "animalUUID";
@@ -94,7 +93,7 @@ public class CollarItem extends Item {
                 ? BlockPos.of(item.getTag().getLong("HomePos"))
                 : null;
         var dim = item.hasTag() && item.getTag().contains("HomeDim")
-                ? new ResourceLocation(item.getTag().getString("HomeDim"))
+                ? new CompatResourceLocation(item.getTag().getString("HomeDim")).unwrap()
                 : null;
 
         if (pos != null && dim != null) {

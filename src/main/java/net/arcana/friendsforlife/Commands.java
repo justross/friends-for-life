@@ -1,20 +1,20 @@
 package net.arcana.friendsforlife;
 
-import java.util.List;
-
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.util.List;
+import java.util.Objects;
 
 public class Commands {
 
@@ -31,7 +31,7 @@ public class Commands {
     }
 
     // /listpets (no argument)
-    private static int listPetsSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    private static int listPetsSelf(CommandContext<CommandSourceStack> context) {
         ServerPlayer player = context.getSource().getPlayer();
         return listPetsInternal(context.getSource(), player);
     }
@@ -45,8 +45,6 @@ public class Commands {
     // Shared logic
     private static int listPetsInternal(CommandSourceStack source, ServerPlayer player) {
         MinecraftServer server = source.getServer();
-        if (server == null)
-            return 0;
 
         StringBuilder pets = new StringBuilder();
         List<PetData> petsList = PetTracker.get(server).getTrackedMap().values().stream()
@@ -60,18 +58,18 @@ public class Commands {
                 var tame = pd.entity();
                 var nbt = pd.shoulderNbt();
                 if (tame != null) {
-                    // get custom name or default name if there is none
-                    String name = tame.hasCustomName() ? tame.getCustomName().getString()
+                    // get custom customName or default name if there is none
+                    String name = tame.hasCustomName() ? Objects.requireNonNull(tame.getCustomName()).getString()
                             : tame.getType().getDescription().getString();
 
                     pets.append(name)
                             .append(": ");
                 } else if (nbt != null) {
 
-                    // name
+                    // customName
                     String name = nbt.contains("CustomName")
                             ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
-                            : BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(nbt.getString("id"))).getDescription().getString();
+                            : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
 
                     pets.append(name)
                             .append(": ");

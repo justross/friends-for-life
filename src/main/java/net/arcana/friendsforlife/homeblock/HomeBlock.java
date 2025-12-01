@@ -1,24 +1,23 @@
 package net.arcana.friendsforlife.homeblock;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
-import org.jetbrains.annotations.Nullable;
-
 import net.arcana.friendsforlife.Net;
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class HomeBlock extends SavedData {
     public record HomeBlockHandle(BlockPos pos, ResourceKey<Level> dim) {
@@ -45,7 +44,7 @@ public class HomeBlock extends SavedData {
                         posTag.getInt("y"),
                         posTag.getInt("z"));
                 String dimStr = posTag.getString("dimension");
-                ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimStr));
+                ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(dimStr).unwrap());
                 state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
             } catch (Exception e) {
                 FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Skipped invalid home entry: " + key);

@@ -1,9 +1,5 @@
 package net.arcana.friendsforlife.items;
 
-import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
-
 import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.client.RosterScreen;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
@@ -26,6 +22,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class RosterItem extends Item {
     public RosterItem(Properties settings) {

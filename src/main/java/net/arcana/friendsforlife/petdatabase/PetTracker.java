@@ -1,18 +1,10 @@
 package net.arcana.friendsforlife.petdatabase;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
-import org.jetbrains.annotations.Nullable;
-
 import io.netty.buffer.Unpooled;
-import net.arcana.friendsforlife.Packets;
+import net.arcana.friendsforlife.Net;
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
+import net.arcana.friendsforlife.packets.PetListPacket;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -20,7 +12,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -29,6 +20,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
 
 public class PetTracker extends SavedData {
     private final Map<UUID, PetData> tracked = new HashMap<>();
@@ -41,8 +35,7 @@ public class PetTracker extends SavedData {
             item.save(collar);
             PetData pd = new PetData(tame, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
-            var petList = PetTracker.serializePetList(player.getServer());
-            ServerPlayNetworking.send(player, Packets.RESPONSE_PET_TRACKER, petList);
+            Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
         }
     }
 
@@ -57,16 +50,18 @@ public class PetTracker extends SavedData {
             FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Could not find player to update pet list for removed pet: " + uuid);
             return;
         }
-        var petList = PetTracker.serializePetList(server);
-        ServerPlayNetworking.send((ServerPlayer) player, Packets.RESPONSE_PET_TRACKER, petList);
+        var petList = PetTracker.toEntries(server);
+        Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
     }
 
     public Map<UUID, PetData> getTrackedMap() {
         return tracked;
     }
 
-    /** Map of entities marked for deletion */
-    public Set<UUID> getRecreatedMap() {
+    /**
+     * Map of entities marked for deletion
+     */
+    public Set<UUID> getRecreatedEntityMap() {
         return recreated;
     }
 
@@ -115,34 +110,13 @@ public class PetTracker extends SavedData {
         out.writeUtf(pet.homeDimension != null ? pet.homeDimension.location().toString() : "");
     }
 
-    /** Serializes pet list for player */
-    public static FriendlyByteBuf serializePetList(MinecraftServer server) {
+    /**
+     * Serializes pet list for player
+     */
+    public static PetListPacket toEntries(MinecraftServer server) {
         List<PetData> pets = new ArrayList<>(PetTracker.get(server).tracked.values());
         pets.sort((a, b) -> Long.compare(a.tameTimestamp, b.tameTimestamp));
-
-        FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
-        out.writeInt(pets.size());
-
-        for (PetData pet : pets) {
-            serializePetData(out, pet, server);
-            // out.writeUuid(pet.uuid);
-
-            // var data = pet.getEntity(player.getServer()).join();
-            // if (data != null && data.entity() != null) {
-            // writeEntityData(out, data.entity(), null);
-            // } else if (data != null && data.shoulderNbt() != null) {
-            // writeEntityData(out, null, data.shoulderNbt());
-            // } else {
-            // writeEntityData(out, null, pet.getEntityData());
-            // }
-
-            // out.writeString(pet.position.toShortString());
-            // out.writeLong(pet.homePosition != null ? pet.homePosition.asLong() : 0L);
-            // out.writeString(pet.homeDimension != null ?
-            // pet.homeDimension.getValue().toString() : "");
-        }
-
-        return out;
+        return new PetListPacket(pets.stream().map(PetData::toEntry).toList());
     }
 
     @Override
@@ -190,7 +164,7 @@ public class PetTracker extends SavedData {
 
     /**
      * Serializer helper method
-     * 
+     *
      * @param out
      * @param entity
      * @param nbt
@@ -212,7 +186,7 @@ public class PetTracker extends SavedData {
 
             String name = nbt.contains("CustomName")
                     ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
-                    : BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(nbt.getString("id"))).getDescription().getString();
+                    : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
             out.writeUtf(name);
         }
     }

@@ -1,13 +1,10 @@
 package net.arcana.friendsforlife.client;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
 import net.arcana.friendsforlife.petdatabase.PetListUpdateEvents;
 import net.minecraft.client.player.LocalPlayer;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientPetList {
 
@@ -35,13 +32,14 @@ public class ClientPetList {
         notifyListeners();
     }
 
+    @SuppressWarnings("unused")
     public static synchronized List<ClientPetData> getAllPets() {
         return List.copyOf(pets.values());
     }
 
     public static synchronized List<ClientPetData> getAllForPlayer(LocalPlayer player) {
         return List.copyOf(pets.values().stream()
-                .filter(pet -> pet.getOwnerUuid().equals(player.getUUID()))
+                .filter(pet -> Objects.equals(pet.getOwnerUuid(), player.getUUID()))
                 .toList());
     }
 

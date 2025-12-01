@@ -1,22 +1,19 @@
 package net.arcana.friendsforlife.client;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
-
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
 import net.arcana.friendsforlife.packets.HomeRequestPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ClientHomeBlock {
 
     private static final List<Runnable> listeners = new ArrayList<>();
-    private static @Nullable BlockPos blockPos;
-    private static @Nullable ResourceKey<Level> dimension;
+    private static BlockPos blockPos;
+    private static ResourceKey<Level> dimension;
 
     static {
         // Subscribe to server updates once when class is loaded
@@ -43,7 +40,6 @@ public class ClientHomeBlock {
         notifyListeners();
     }
 
-    @Nullable
     public static synchronized BlockPos get() {
         return blockPos;
     }
@@ -53,10 +49,12 @@ public class ClientHomeBlock {
     }
 
     // --- subscription methods ---
+    @SuppressWarnings("unused")
     public static void addListener(Runnable listener) {
         listeners.add(listener);
     }
 
+    @SuppressWarnings("unused")
     public static void removeListener(Runnable listener) {
         listeners.remove(listener);
     }

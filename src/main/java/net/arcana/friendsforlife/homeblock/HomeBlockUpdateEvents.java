@@ -1,11 +1,12 @@
 package net.arcana.friendsforlife.homeblock;
 
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.util.TriConsumer;
+
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class HomeBlockUpdateEvents {
     public interface IListener extends TriConsumer<UUID, BlockPos, ResourceKey<Level>> {}

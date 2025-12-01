@@ -1,12 +1,13 @@
 package net.arcana.friendsforlife.client;
 
-import java.util.function.Consumer;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.util.NinePatchTexture;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.function.Consumer;
 
 public class TooltipButtonComponent extends ButtonComponent {
     public boolean looksDisabled = false;

@@ -4,17 +4,19 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.arcana.friendsforlife.items.CollarItem;
 import net.arcana.friendsforlife.items.RosterItem;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+
+import java.util.Objects;
 
 public class HomeBlockRenderer {
 
@@ -27,18 +29,21 @@ public class HomeBlockRenderer {
                                 ItemStack item = client.player.getMainHandItem();
 
                                 // If holding roster, show default home block
-                                if (item.getItem() instanceof RosterItem
-                                                && client.level.dimension().equals(dimKey)
-                                                && KeyHelper.isAltDown()) {
-                                        homeBlock = ClientHomeBlock.get();
+                                if (item.getItem() instanceof RosterItem) {
+                                    assert client.level != null;
+                                    if (client.level.dimension().equals(dimKey)
+                                            && KeyHelper.isAltDown()) {
+                                    homeBlock = ClientHomeBlock.get();
+                                    }
                                 }
 
                                 // If holding collar, show that pet's home block
                                 else if (item.getItem() instanceof CollarItem && KeyHelper.isAltDown()) {
-                                        var dim = item.hasTag() && item.getTag().contains("HomeDim")
-                                                        ? new ResourceLocation(item.getTag().getString("HomeDim"))
+                                        var dim = item.hasTag() && Objects.requireNonNull(item.getTag()).contains("HomeDim")
+                                                        ? new CompatResourceLocation(item.getTag().getString("HomeDim")).unwrap()
                                                         : null;
-                                        if (dim == null || !client.level.dimension().location().equals(dim))
+                                    assert client.level != null;
+                                    if (!client.level.dimension().location().equals(dim))
                                                 return;
                                         homeBlock = item.hasTag() && item.getTag().contains("HomePos")
                                                         ? BlockPos.of(item.getTag().getLong("HomePos"))

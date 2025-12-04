@@ -259,7 +259,7 @@
                     <positioning type="relative">50,50</positioning>
                     <padding>
                         <all>16</all>
-                        <top>4</top>
+                        <top>5</top>
                     </padding>
                 </flow-layout>
             </children>

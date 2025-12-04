@@ -3,14 +3,13 @@
   "id": "friendsforlife",
   "version": "${version}",
   "name": "Friends For Life",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "A QoL addition to tamed animals. Bring your pets along for the journey!",
   "authors": [
     "conbo",
     "jjorge"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/friends-for-life"
   },
   "license": "See LICENSE",
   "build": {

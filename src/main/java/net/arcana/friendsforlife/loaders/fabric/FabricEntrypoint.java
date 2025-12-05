@@ -3,17 +3,18 @@ package net.arcana.friendsforlife.loaders.fabric;
 
 import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
+import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.items.CollarItem;
 import net.arcana.friendsforlife.items.Items;
 import net.arcana.friendsforlife.items.OcarinaItem;
-import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.petdatabase.PetWatcher;
+import net.arcana.friendsforlife.util.ServerContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.TamableAnimal;
@@ -54,6 +55,9 @@ public class FabricEntrypoint implements ModInitializer {
 
         Net.register();
         TaskScheduler.register();
+        //? if >=1.21 {
+        Components.initialize();
+        //?}
 
         // cause dogs are annoying and return from a interaction early, we have to
         // overwrite nbt methods
@@ -94,6 +98,9 @@ public class FabricEntrypoint implements ModInitializer {
             }
             return InteractionResult.PASS;
         }));
+
+        // Helper to provide server context for classes
+        ServerLifecycleEvents.SERVER_STARTED.register(ServerContext::setServer);
 
         // Remove entities that have been duplicated and marked as such
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {

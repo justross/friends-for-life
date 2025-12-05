@@ -1,14 +1,27 @@
 package net.arcana.friendsforlife.items;
 
 import net.arcana.friendsforlife.RaycastHelper;
+import net.arcana.friendsforlife.util.CompatItemStack;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.stream.Stream;
+
+//? if >=1.21 {
+import net.arcana.friendsforlife.components.Components;
+ //?}
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
+import net.arcana.friendsforlife.util.CompatItemStack;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
+import net.arcana.friendsforlife.util.Item;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -23,15 +36,16 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class CollarItem extends Item {
     private static final String UUIDtag = "animalUUID";
@@ -42,31 +56,57 @@ public class CollarItem extends Item {
 
     @Override
     public boolean isFoil(ItemStack stack) {
-        CompoundTag nbt = stack.getTag();
-        return nbt != null && nbt.contains("HomePos");
+        //? if >=1.21 {
+        return stack.getOrDefault(Components.HOME_POS, 0L) != 0;
+         //?} else {
+        /*CompoundTag nbt = CompatItemStack.getTag(stack, HolderLookup.Provider.create(Stream.empty()));
+        if (nbt == null) return false;
+        return nbt.contains("HomePos");
+        *///?}
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+    public @NotNull InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
         if (!world.isClientSide) {
             if (player.isShiftKeyDown()) {
                 ResourceKey<Level> dim = player.level().dimension();
-                CompoundTag nbt = stack.getOrCreateTag();
 
                 BlockPos pos = RaycastHelper.getRaycastBlock(player);
-                if (pos == null && nbt != null && nbt.getLong("HomePos") != 0) {
-                    nbt.remove("HomePos");
+                //? if >=1.21 {
+                boolean shouldRemove = stack.getOrDefault(Components.HOME_POS, 0L) != 0 && pos == null;
+                 //?} else {
+                /*CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
+                boolean shouldRemove = pos == null && nbt.getLong("HomePos") != 0;
+                *///?}
+                if (shouldRemove) {
+                    //? if >=1.21 {
+                    stack.remove(Components.HOME_DIM);
+                    stack.remove(Components.HOME_POS);
+                    //?} else {
+                    /*nbt.remove("HomePos");
                     nbt.remove("HomeDim");
+                    *///?}
+
                     player.displayClientMessage(Component.translatable("message.friendsforlife.home_unset"), true);
                 } else {
                     if (pos == null) {
                         pos = player.blockPosition();
                     }
-                    nbt.putLong("HomePos", pos.asLong());
+
+                    //? if >=1.21 {
+                    stack.set(Components.HOME_POS, pos.asLong());
+                    stack.set(Components.HOME_DIM, dim.location().toString());
+                    //?} else {
+
+                    /*nbt.putLong("HomePos", pos.asLong());
                     nbt.putString("HomeDim", dim.location().toString());
-                    stack.setTag(nbt);
+
+                    stack = CompatItemStack.setTag(stack, nbt);
+                    *///?}
+
+
                     player.getInventory().setChanged();
 
                     player.displayClientMessage(Component.translatable("message.friendsforlife.home_set"), true);
@@ -84,17 +124,30 @@ public class CollarItem extends Item {
 
         var tracker = PetTracker.get(user.getServer());
         // tell server to track the pet
-        tracker.addPet(tame, user, item, Instant.now().toEpochMilli());
+        PetData pd = tracker.addPet(tame, user, item, Instant.now().toEpochMilli());
+        if (pd == null) {
+            return InteractionResult.SUCCESS;
+        }
         if (!user.isCreative())
             item.shrink(1);
 
-        PetData pd = tracker.getByEntityId(tame.getUUID());
-        var pos = item.hasTag() && item.getTag().contains("HomePos")
-                ? BlockPos.of(item.getTag().getLong("HomePos"))
+        //? if >=1.21 {
+        var posLong = item.get(Components.HOME_POS);
+        var pos = posLong != null
+                ? BlockPos.of(posLong)
                 : null;
-        var dim = item.hasTag() && item.getTag().contains("HomeDim")
-                ? new CompatResourceLocation(item.getTag().getString("HomeDim")).unwrap()
+        var dimString = item.get(Components.HOME_DIM);
+        var dim = dimString != null ? new CompatResourceLocation(dimString).unwrap() : null;
+        //?} else {
+
+        /*var tag = CompatItemStack.hasTag(item) ? Objects.requireNonNull(CompatItemStack.getTag(item)) : null;
+        var pos = tag != null && tag.contains("HomePos")
+                ? BlockPos.of(tag.getLong("HomePos"))
                 : null;
+        var dim = tag != null && tag.contains("HomeDim")
+                ? new CompatResourceLocation(tag.getString("HomeDim")).unwrap()
+                : null;
+        *///?}
 
         if (pos != null && dim != null) {
             pd.homePosition = pos;
@@ -102,9 +155,9 @@ public class CollarItem extends Item {
         }
 
         user.level().playSound(
-                null, // null = broadcast to nearby players
-                tame.blockPosition(), // sound position
-                SoundEvents.ARMOR_EQUIP_LEATHER, // pick any sound here
+                null, // broadcast to nearby players
+                tame.getX(), tame.getY(), tame.getZ(),
+                SoundEvents.ARMOR_EQUIP_LEATHER,
                 SoundSource.PLAYERS,
                 1.0F, 1.0F);
 
@@ -118,13 +171,16 @@ public class CollarItem extends Item {
         if (petData == null)
             return null;
 
-        user.level().playSound(
-                null, // null = broadcast to nearby players
-                tame.blockPosition(), // sound position
-                SoundEvents.ARMOR_EQUIP_LEATHER, // pick any sound here
+        user.level().playSound(null, tame.getX(), tame.getY(), tame.getZ(),
+                SoundEvents.ARMOR_EQUIP_LEATHER,
                 SoundSource.PLAYERS,
-                1.0F, 1.0F);
-        return ItemStack.of(petData.collar);
+                1.0f, 1.0f
+        );
+        //? if >=1.21 {
+        return CompatItemStack.of(petData.collar);
+         //?} else {
+        /*return CompatItemStack.of(petData.collar);
+        *///?}
     }
 
     public static void removePet(TamableAnimal tame, PetData petData) {
@@ -135,23 +191,21 @@ public class CollarItem extends Item {
         tame.setInvulnerable(false);
     }
 
-    public PetData getBoundPetData(Level world, ItemStack item) {
-        if (!item.hasTag() || !item.getTag().hasUUID(UUIDtag))
-            return null;
-        UUID uuid = item.getTag().getUUID(UUIDtag);
-
-        MinecraftServer server = world.getServer();
-        if (server == null)
-            return null;
-        return PetTracker.get(server).get(uuid);
-    }
-
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
-        CompoundTag nbt = stack.getTag();
-        if (nbt != null && nbt.contains("HomePos")) {
-            BlockPos pos = BlockPos.of(nbt.getLong("HomePos"));
+    protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
 
+        //? if >=1.21 {
+        long poslong = stack.getOrDefault(Components.HOME_POS, 0L);
+        BlockPos pos = poslong != 0L ? BlockPos.of(poslong) : null;
+        //?} else {
+        /*CompoundTag nbt = CompatItemStack.getTag(stack);
+        BlockPos pos = null;
+        if (nbt != null && nbt.contains("HomePos")) {
+            pos = BlockPos.of(nbt.getLong("HomePos"));
+        }
+        *///?}
+
+        if (pos != null) {
             tooltip.add(Component.literal("Home Position: ")
                     .append(Component.literal(pos.getX() + ", " + pos.getY() + ", " + pos.getZ())
                             .withStyle(ChatFormatting.AQUA)));
@@ -174,5 +228,4 @@ public class CollarItem extends Item {
             }
         }
     }
-
 }

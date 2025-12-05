@@ -1,10 +1,14 @@
 package net.arcana.friendsforlife.petdatabase;
 
+import net.arcana.friendsforlife.TameableWanderHelper;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.PetListPacket;
+import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
+import net.arcana.friendsforlife.util.NBTCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -25,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -87,25 +92,37 @@ public class PetData {
     public record Entry(
             UUID uuid,
             String entityTypeId,
-            CompoundTag nbt,
+            byte[] nbtBytes,
             String position,
             long homePosLong,
             String homeDimStr
     ) {
+
+        // Factory to create Entry from a CompoundTag
+        public static Entry of(UUID uuid, String entityTypeId, CompoundTag nbt,
+                               String position, long homePosLong, String homeDimStr) {
+            return new Entry(uuid, entityTypeId, NBTCodec.serialize(nbt),
+                    position, homePosLong, homeDimStr);
+        }
+
+        // Decode the stored bytes back to CompoundTag
+        public CompoundTag nbt() {
+            return NBTCodec.deserialize(nbtBytes);
+        }
     }
 
     public Entry toEntry() {
-        return new Entry(
+        return Entry.of(
                 this.uuid,
                 this.getEntityData().getString("id"),
                 this.getEntityData(),
                 this.position.toShortString(),
                 this.homePosition != null ? this.homePosition.asLong() : 0L,
                 //? if <1.21 {
-                this.homeDimension != null ? this.homeDimension.location().toString() : ""
-                //?} else {
                 /*this.homeDimension != null ? this.homeDimension.location().toString() : ""
-                 *///?}
+                 *///?} else {
+                this.homeDimension != null ? this.homeDimension.location().toString() : ""
+                //?}
         );
     }
 
@@ -150,16 +167,6 @@ public class PetData {
         ResourceKey<Level> homeDim = tag.contains("homeDim") && !tag.getString("homeDim").isEmpty()
                 ? ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(tag.getString("homeDim")).unwrap())
                 : null;
-
-        List<UUID> ocarinas = new ArrayList<>();
-
-        ListTag ocarinaList = tag.getList("boundOcarinas", Tag.TAG_COMPOUND);
-        for (Tag e : ocarinaList) {
-            CompoundTag ocarinaNbt = (CompoundTag) e;
-            if (ocarinaNbt.hasUUID("uuid")) {
-                ocarinas.add(ocarinaNbt.getUUID("uuid"));
-            }
-        }
 
         CompoundTag entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
 
@@ -236,6 +243,7 @@ public class PetData {
      * @param z
      * @return The recreated TameableEntity, or null if recreation failed
      */
+    @SuppressWarnings("DataFlowIssue")
     @Nullable
     public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y,
                                         int z) {
@@ -314,8 +322,8 @@ public class PetData {
         boolean savedHasName = savedEntityData.contains("CustomName");
 
         if (shoulderHasName && savedHasName) {
-            String shoulderName = Component.Serializer.fromJson(shoulderNbt.getString("CustomName")).getString();
-            String savedName = Component.Serializer.fromJson(savedEntityData.getString("CustomName")).getString();
+            String shoulderName = Objects.requireNonNull(CompatComponent.fromJson(shoulderNbt.getString("CustomName"))).getString();
+            String savedName = Objects.requireNonNull(CompatComponent.fromJson(savedEntityData.getString("CustomName"))).getString();
             return shoulderName.equals(savedName);
         }
 
@@ -324,31 +332,15 @@ public class PetData {
 
     public void onRemoved(MinecraftServer server) {
         OcarinaRegistry.get(server).unregisterAllForPet(this.uuid, server);
+        var peh = getEntity(server).join();
+        if (peh.entity() != null) {
+            TameableWanderHelper.stopWandering(peh.entity());
+        } else {
+            FabricEntrypoint.LOGGER.warn("Unable to find entity for removed pet");
+        }
+
     }
 
-
-    /**
-     *
-     * @param server
-     */
-//    private CompoundTag serializePetData(MinecraftServer server) {
-//        CompoundTag nbt = new CompoundTag();
-//        nbt.writeUUID(uuid);
-//
-//        var data = pet.getEntity(server).join();
-//        if (data != null && data.entity() != null) {
-//            writeEntityData(out, data.entity(), null);
-//        } else if (data != null && data.shoulderNbt() != null) {
-//            writeEntityData(out, null, data.shoulderNbt());
-//        } else {
-//            writeEntityData(out, null, pet.getEntityData());
-//        }
-//
-//        out.writeUtf(pet.position.toShortString());
-//        out.writeLong(pet.homePosition != null ? pet.homePosition.asLong() : 0L);
-//        out.writeUtf(pet.homeDimension != null ? pet.homeDimension.location().toString() : "");
-//
-//    }
 
     /**
      * Serializer helper method
@@ -365,7 +357,7 @@ public class PetData {
             out.writeNbt(entityNbt);
 
             String name = entity.hasCustomName()
-                    ? entity.getCustomName().getString()
+                    ? Objects.requireNonNull(entity.getCustomName()).getString()
                     : entity.getType().getDescription().getString();
             out.writeUtf(name);
         } else if (nbt != null) {
@@ -373,7 +365,7 @@ public class PetData {
             out.writeNbt(nbt);
 
             String name = nbt.contains("CustomName")
-                    ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
+                    ? Objects.requireNonNull(CompatComponent.fromJson(nbt.getString("CustomName"))).getString()
                     : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
             out.writeUtf(name);
         }

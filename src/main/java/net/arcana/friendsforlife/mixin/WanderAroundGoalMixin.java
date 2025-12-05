@@ -39,7 +39,7 @@ public abstract class WanderAroundGoalMixin {
                 PetData pd = tracker.getByEntityId(pet.getUUID());
 
                 // Check if pet has its own home, otherwise use default home
-                HomeBlockHandle petHbh = pd.getHomeBlock();
+                HomeBlockHandle petHbh = pd != null ? pd.getHomeBlock() : null;
                 if (petHbh != null && petHbh.pos() != null) {
                     home = petHbh;
                 } else {

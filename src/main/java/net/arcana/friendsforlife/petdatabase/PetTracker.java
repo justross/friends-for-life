@@ -4,8 +4,10 @@ import io.netty.buffer.Unpooled;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.PetListPacket;
+import net.arcana.friendsforlife.util.CompatComponent;
+import net.arcana.friendsforlife.util.CompatItemStack;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.arcana.friendsforlife.util.SavedData;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -18,7 +20,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,15 +29,22 @@ public class PetTracker extends SavedData {
     private final Map<UUID, PetData> tracked = new HashMap<>();
     private final Set<UUID> recreated = new HashSet<>(); // Entities that have been recreated and must be removed
 
-    public void addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
+    @Nullable
+    public PetData addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
         FabricEntrypoint.LOGGER.info("adding new entity to be tracked: " + tame.getName());
         if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUUID()))) {
             CompoundTag collar = new CompoundTag();
-            item.save(collar);
+            //? if >=1.21 {
+            collar = CompatItemStack.save(item, collar, player.level());
+            //?} else {
+            /*CompatItemStack.save(item, collar, player.level());
+            *///?}
             PetData pd = new PetData(tame, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
             Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
+            return pd;
         }
+        return null;
     }
 
     public void removePet(MinecraftServer server, UUID uuid) {
@@ -66,14 +74,14 @@ public class PetTracker extends SavedData {
     }
 
     public static PetTracker get(MinecraftServer server) {
-        DimensionDataStorage manager = server.overworld().getDataStorage();
-        return manager.computeIfAbsent(PetTracker::fromNBT, PetTracker::new, "friends_for_life_tracked_pets");
+        return SavedData.get(server, "friends_for_life_tracked_pets", PetTracker::fromNBT, PetTracker::new);
     }
 
     public PetData get(UUID uuid) {
         return tracked.get(uuid);
     }
 
+    @Nullable
     public PetData getByEntityId(UUID entityUuid) {
         return tracked.values().stream()
                 .filter(pet -> pet.entityUuid.equals(entityUuid))
@@ -120,7 +128,7 @@ public class PetTracker extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag nbt) {
+    protected void write(CompoundTag nbt) {
         ListTag petList = new ListTag();
         for (PetData data : tracked.values()) {
             petList.add(data.toNbt());
@@ -134,8 +142,6 @@ public class PetTracker extends SavedData {
             recreatedList.add(tag);
         }
         nbt.put("recreatedPets", recreatedList);
-
-        return nbt;
     }
 
     public static PetTracker fromNBT(CompoundTag nbt) {
@@ -177,7 +183,7 @@ public class PetTracker extends SavedData {
             out.writeNbt(entityNbt);
 
             String name = entity.hasCustomName()
-                    ? entity.getCustomName().getString()
+                    ? Objects.requireNonNull(entity.getCustomName()).getString()
                     : entity.getType().getDescription().getString();
             out.writeUtf(name);
         } else if (nbt != null) {
@@ -185,7 +191,7 @@ public class PetTracker extends SavedData {
             out.writeNbt(nbt);
 
             String name = nbt.contains("CustomName")
-                    ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
+                    ? Objects.requireNonNull(CompatComponent.fromJson(nbt.getString("CustomName"))).getString()
                     : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
             out.writeUtf(name);
         }

@@ -1,6 +1,7 @@
 package net.arcana.friendsforlife.client;
 
 import net.arcana.friendsforlife.petdatabase.PetData;
+import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.BlockPos;
@@ -78,12 +79,12 @@ public class ClientPetData {
     public String getName() {
         Objects.requireNonNull(entityData);
         if (entityData.contains("CustomName")) {
-            return Objects.requireNonNull(Component.Serializer.fromJson(entityData.getString("CustomName"))).getString();
+            return Objects.requireNonNull(CompatComponent.fromJson(entityData.getString("CustomName"))).getString();
         }
 
         if (entityData.contains("EntityType")) {
             String typeKey = entityData.getString("EntityType");
-            ResourceLocation id = new ResourceLocation(typeKey);
+            ResourceLocation id = new CompatResourceLocation(typeKey).unwrap();
 
             EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(id);
             return I18n.get(type.getDescriptionId());

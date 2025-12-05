@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+@SuppressWarnings("DataFlowIssue")
 @Mixin(Mob.class)
 public abstract class MobEntityMixin implements MobEntityAccessor {
     @Final

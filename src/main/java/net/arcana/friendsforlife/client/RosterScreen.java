@@ -195,7 +195,6 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     }
 
     // Update the current pet
-    @SuppressWarnings("unchecked")
     protected void updateCurrentPet(ClientPetData newPet) {
         if (newPet == null) {
             this.currentPet = null;

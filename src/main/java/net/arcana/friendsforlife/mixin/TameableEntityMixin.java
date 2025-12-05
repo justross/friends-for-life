@@ -98,9 +98,7 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
         }
         if (nbt.contains("FriendsForLifeEntityUUID")) {
             UUID entityUuid = nbt.getUUID("FriendsForLifeEntityUUID");
-            if (entityUuid != null) {
-                this.friendsforlife_setUuid(entityUuid);
-            }
+            this.friendsforlife_setUuid(entityUuid);
         }
     }
 

@@ -3,6 +3,7 @@ package net.arcana.friendsforlife.items;
 import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.client.RosterScreen;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
+import net.arcana.friendsforlife.util.Item;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
@@ -18,10 +19,10 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -32,7 +33,7 @@ public class RosterItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+    public @NotNull InteractionResultHolder<ItemStack> use(Level world, @NotNull Player player, @NotNull InteractionHand hand) {
         // Only open screen on the client side
         if (world.isClientSide) {
             if (!player.isShiftKeyDown()) {
@@ -61,7 +62,7 @@ public class RosterItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
+    protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
         if (Screen.hasShiftDown()) {
             List<FormattedCharSequence> lines = Tooltip.splitTooltip(
                     Minecraft.getInstance(),

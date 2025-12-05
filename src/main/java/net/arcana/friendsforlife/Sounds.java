@@ -6,13 +6,15 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 
+import java.util.Objects;
+
 public class Sounds {
     public static SoundEvent OCARINA = registerSound("ocarina");
     public static SoundEvent OCARINA_TWO = registerSound("ocarinatwo");
 
 	private static SoundEvent registerSound(String id) {
 		ResourceLocation identifier = ResourceLocation.tryBuild(FabricEntrypoint.MOD_ID, id);
-		return Registry.register(BuiltInRegistries.SOUND_EVENT, identifier, SoundEvent.createVariableRangeEvent(identifier));
+		return Registry.register(BuiltInRegistries.SOUND_EVENT, Objects.requireNonNull(identifier), SoundEvent.createVariableRangeEvent(identifier));
 	}
 
 	public static void register() {

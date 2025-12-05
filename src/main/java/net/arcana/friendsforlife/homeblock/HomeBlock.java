@@ -4,6 +4,7 @@ import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
+import net.arcana.friendsforlife.util.SavedData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -11,7 +12,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,8 +28,7 @@ public class HomeBlock extends SavedData {
 
     // --- Access ---
     public static HomeBlock get(MinecraftServer server) {
-        DimensionDataStorage manager = server.overworld().getDataStorage();
-        return manager.computeIfAbsent(HomeBlock::fromNbt, HomeBlock::new, KEY);
+        return SavedData.get(server, KEY, HomeBlock::fromNbt, HomeBlock::new);
     }
 
     public static HomeBlock fromNbt(CompoundTag nbt) {
@@ -54,7 +53,7 @@ public class HomeBlock extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag nbt) {
+    public void write(CompoundTag nbt) {
         CompoundTag homes = new CompoundTag();
         for (Map.Entry<UUID, HomeBlockHandle> e : playerHomes.entrySet()) {
             BlockPos pos = e.getValue().pos();
@@ -67,7 +66,6 @@ public class HomeBlock extends SavedData {
             homes.put(e.getKey().toString(), tag);
         }
         nbt.put("Homes", homes);
-        return nbt;
     }
 
     // --- API ---
@@ -88,7 +86,7 @@ public class HomeBlock extends SavedData {
                 home = new HomeBlockHandle(player.getRespawnPosition(), player.getRespawnDimension());
             }
         }
-        if (home.pos() == null) {
+        if (home != null && home.pos() == null) {
             home = new HomeBlockHandle(server.overworld().getSharedSpawnPos(), server.overworld().dimension());
         }
         return home;

@@ -2,6 +2,7 @@ package net.arcana.friendsforlife.petdatabase;
 
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.PetUpdatePacket;
+import net.arcana.friendsforlife.util.CompatComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -59,7 +60,7 @@ public class PetWatcher {
                 })
                 .map(pd -> {
                     Component customName = Objects.requireNonNull(pd.getEntity(server).join().entity()).getCustomName();
-                    String name = customName != null ? Component.Serializer.toJson(customName) : "";
+                    String name = customName != null ? CompatComponent.toJson(customName) : "";
 
                     return new PetUpdatePacket.Entry(pd.uuid, name, pd.position);
                 })

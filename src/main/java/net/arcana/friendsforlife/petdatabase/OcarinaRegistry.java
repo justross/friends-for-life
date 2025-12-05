@@ -22,12 +22,6 @@ public class OcarinaRegistry extends SavedData {
     public static OcarinaRegistry get(MinecraftServer server) {
         return SavedData.get(server, "friendsforlife_ocarina_registry",
                 OcarinaRegistry::fromNbt, OcarinaRegistry::new);
-//        DimensionDataStorage mgr = server.getLevel(Level.OVERWORLD).getDataStorage();
-//
-//        return mgr.computeIfAbsent(
-//                OcarinaRegistry::fromNbt,
-//                OcarinaRegistry::new,
-//                "friendsforlife_ocarina_registry");
     }
 
     public OcarinaRegistry() {
@@ -54,7 +48,7 @@ public class OcarinaRegistry extends SavedData {
 
     // ----------- SAVING ----------
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    protected void write(CompoundTag tag) {
         ListTag list = new ListTag();
 
         for (var entry : ocarinaToPet.entrySet()) {
@@ -65,20 +59,6 @@ public class OcarinaRegistry extends SavedData {
         }
 
         tag.put("entries", list);
-        return tag;
-    }
-
-    /**
-     * Writes the full registry into a PacketByteBuf
-     */
-    public FriendlyByteBuf serializeList() {
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        buf.writeInt(ocarinaToPet.size());
-        for (Map.Entry<UUID, UUID> entry : ocarinaToPet.entrySet()) {
-            buf.writeUUID(entry.getKey());
-            buf.writeUUID(entry.getValue());
-        }
-        return buf;
     }
 
     // ----------- OPERATIONS ----------

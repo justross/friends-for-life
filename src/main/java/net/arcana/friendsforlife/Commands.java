@@ -4,6 +4,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
+import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
@@ -68,7 +69,7 @@ public class Commands {
 
                     // customName
                     String name = nbt.contains("CustomName")
-                            ? Component.Serializer.fromJson(nbt.getString("CustomName")).getString()
+                            ? Objects.requireNonNull(CompatComponent.fromJson(nbt.getString("CustomName"))).getString()
                             : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
 
                     pets.append(name)

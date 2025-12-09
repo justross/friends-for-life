@@ -19,6 +19,8 @@ import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.Objects;
+
 @Mixin(WanderAroundGoal.class)
 public abstract class WanderAroundGoalMixin {
     @Shadow
@@ -41,11 +43,11 @@ public abstract class WanderAroundGoalMixin {
                     && ((TameableEntityDecorator) pet).friendsforlife_isForceWander()) {
 
                 HomeBlockHandle home = null;
-                PetTracker tracker = PetTracker.get(pet.getServer());
+                PetTracker tracker = PetTracker.get(Objects.requireNonNull(pet.getServer()));
                 PetData pd = tracker.getByEntityId(pet.getUuid());
 
                 // Check if pet has its own home, otherwise use default home
-                HomeBlockHandle petHbh = pd.getHomeBlock();
+                HomeBlockHandle petHbh = pd != null ? pd.getHomeBlock() : null;
                 if (petHbh != null && petHbh.pos() != null) {
                     home = petHbh;
                 } else {

@@ -79,6 +79,7 @@ public class PetTracker extends PersistentState {
         return tracked.get(uuid);
     }
 
+    @Nullable
     public PetData getByEntityId(UUID entityUuid) {
         return tracked.values().stream()
                 .filter(pet -> pet.entityUuid.equals(entityUuid))

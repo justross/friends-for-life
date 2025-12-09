@@ -6,6 +6,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import net.arcana.friendsforlife.ModInit;
+import net.arcana.friendsforlife.TameableWanderHelper;
 import org.jetbrains.annotations.Nullable;
 
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
@@ -306,6 +308,12 @@ public class PetData {
 
     public void onRemoved(MinecraftServer server) {
         OcarinaRegistry.get(server).unregisterAllForPet(this.uuid, server);
+        var peh = getEntity(server).join();
+        if (peh.entity() != null) {
+            TameableWanderHelper.stopWandering(peh.entity());
+        } else {
+            ModInit.LOGGER.warn("Unable to find entity for removed pet");
+        }
     }
 
 }

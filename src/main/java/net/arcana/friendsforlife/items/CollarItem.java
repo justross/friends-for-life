@@ -90,10 +90,10 @@ public class CollarItem extends Item {
             item.decrement(1);
 
         PetData pd = tracker.getByEntityId(tame.getUuid());
-        var pos = item.hasNbt() && item.getNbt().contains("HomePos")
+        var pos = item.getNbt() != null && item.getNbt().contains("HomePos")
                 ? BlockPos.fromLong(item.getNbt().getLong("HomePos"))
                 : null;
-        var dim = item.hasNbt() && item.getNbt().contains("HomeDim")
+        var dim = item.getNbt() != null && item.getNbt().contains("HomeDim")
                 ? new Identifier(item.getNbt().getString("HomeDim"))
                 : null;
 

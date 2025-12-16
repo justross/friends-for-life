@@ -1,25 +1,34 @@
 package net.arcana.friendsforlife;
 
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 public class Sounds {
-    public static SoundEvent OCARINA = registerSound("ocarina");
-    public static SoundEvent OCARINA_TWO = registerSound("ocarinatwo");
+    public static SoundEvent OCARINA;
+    public static SoundEvent OCARINA_TWO;
 
-	private static SoundEvent registerSound(String id) {
-		ResourceLocation identifier = ResourceLocation.tryBuild(FabricEntrypoint.MOD_ID, id);
-		return Registry.register(BuiltInRegistries.SOUND_EVENT, Objects.requireNonNull(identifier), SoundEvent.createVariableRangeEvent(identifier));
-	}
+    private static SoundEvent createSound(String id) {
+        ResourceLocation identifier = new CompatResourceLocation(Init.MOD_ID, id).unwrap();
+        return SoundEvent.createVariableRangeEvent(
+                Objects.requireNonNull(identifier, "Sound ResourceLocation cannot be null: " + id)
+        );
+    }
 
-	public static void register() {
-		FabricEntrypoint.LOGGER.info("Registering " + FabricEntrypoint.MOD_ID + " Sounds");
-		// Technically this method can stay empty, but some developers like to notify
-		// the console, that certain parts of the mod have been successfully initialized
-	}
+    public static void registerAll(BiConsumer<ResourceLocation, SoundEvent> registrar) {
+        Init.LOGGER.info("Registering " + Init.MOD_ID + " sounds");
+
+        OCARINA = createSound("ocarina");
+        OCARINA_TWO = createSound("ocarinatwo");
+
+        registrar.accept(id("ocarina"), OCARINA);
+        registrar.accept(id("ocarinatwo"), OCARINA_TWO);
+    }
+
+    private static ResourceLocation id(String name) {
+        return new CompatResourceLocation(Init.MOD_ID, name).unwrap();
+    }
 }

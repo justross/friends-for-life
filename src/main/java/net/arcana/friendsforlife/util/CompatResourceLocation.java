@@ -7,15 +7,15 @@ public final class CompatResourceLocation {
 
     public CompatResourceLocation(String namespaceAndPath) {
         //? if <1.21 {
-        /*this.value = new ResourceLocation(namespaceAndPath);
-         *///?} else
-        this.value = ResourceLocation.tryParse(namespaceAndPath);
+        this.value = new ResourceLocation(namespaceAndPath);
+         //?} else
+        /*this.value = ResourceLocation.tryParse(namespaceAndPath);*/
     }
     public CompatResourceLocation(String namespace, String path) {
         //? if <1.21 {
-        /*this.value = new ResourceLocation(namespace, path);
-        *///?} else
-        this.value = ResourceLocation.fromNamespaceAndPath(namespace, path);
+        this.value = new ResourceLocation(namespace, path);
+        //?} else
+        /*this.value = ResourceLocation.fromNamespaceAndPath(namespace, path);*/
     }
 
     public ResourceLocation unwrap() {

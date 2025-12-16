@@ -4,16 +4,19 @@ import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.util.CompatItemStack;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.stream.Stream;
+//? if fabric {
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+//?}
 
-//? if >=1.21 {
-import net.arcana.friendsforlife.components.Components;
- //?}
+//? if >= 1.21
+/*import net.arcana.friendsforlife.components.components.Components;*/
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
-import net.arcana.friendsforlife.util.CompatItemStack;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.Item;
 import net.minecraft.ChatFormatting;
@@ -21,9 +24,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -31,12 +32,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
@@ -44,25 +42,23 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 public class CollarItem extends Item {
-    private static final String UUIDtag = "animalUUID";
-
     public CollarItem(Properties settings) {
         super(settings);
     }
 
     @Override
+    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
     public boolean isFoil(ItemStack stack) {
         //? if >=1.21 {
-        return stack.getOrDefault(Components.HOME_POS, 0L) != 0;
-         //?} else {
-        /*CompoundTag nbt = CompatItemStack.getTag(stack, HolderLookup.Provider.create(Stream.empty()));
+        /*return stack.getOrDefault(Components.HOME_POS, 0L) != 0;
+        *///?} else {
+        CompoundTag nbt = CompatItemStack.getTag(stack, HolderLookup.Provider.create(Stream.empty()));
         if (nbt == null) return false;
         return nbt.contains("HomePos");
-        *///?}
+        //?}
     }
 
     @Override
@@ -75,19 +71,19 @@ public class CollarItem extends Item {
 
                 BlockPos pos = RaycastHelper.getRaycastBlock(player);
                 //? if >=1.21 {
-                boolean shouldRemove = stack.getOrDefault(Components.HOME_POS, 0L) != 0 && pos == null;
-                 //?} else {
-                /*CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
+                /*boolean shouldRemove = stack.getOrDefault(Components.HOME_POS, 0L) != 0 && pos == null;
+                *///?} else {
+                CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
                 boolean shouldRemove = pos == null && nbt.getLong("HomePos") != 0;
-                *///?}
+                //?}
                 if (shouldRemove) {
                     //? if >=1.21 {
-                    stack.remove(Components.HOME_DIM);
+                    /*stack.remove(Components.HOME_DIM);
                     stack.remove(Components.HOME_POS);
-                    //?} else {
-                    /*nbt.remove("HomePos");
+                    *///?} else {
+                    nbt.remove("HomePos");
                     nbt.remove("HomeDim");
-                    *///?}
+                    //?}
 
                     player.displayClientMessage(Component.translatable("message.friendsforlife.home_unset"), true);
                 } else {
@@ -96,15 +92,15 @@ public class CollarItem extends Item {
                     }
 
                     //? if >=1.21 {
-                    stack.set(Components.HOME_POS, pos.asLong());
+                    /*stack.set(Components.HOME_POS, pos.asLong());
                     stack.set(Components.HOME_DIM, dim.location().toString());
-                    //?} else {
+                    *///?} else {
 
-                    /*nbt.putLong("HomePos", pos.asLong());
+                    nbt.putLong("HomePos", pos.asLong());
                     nbt.putString("HomeDim", dim.location().toString());
 
                     stack = CompatItemStack.setTag(stack, nbt);
-                    *///?}
+                    //?}
 
 
                     player.getInventory().setChanged();
@@ -132,22 +128,22 @@ public class CollarItem extends Item {
             item.shrink(1);
 
         //? if >=1.21 {
-        var posLong = item.get(Components.HOME_POS);
+        /*var posLong = item.get(Components.HOME_POS);
         var pos = posLong != null
                 ? BlockPos.of(posLong)
                 : null;
         var dimString = item.get(Components.HOME_DIM);
         var dim = dimString != null ? new CompatResourceLocation(dimString).unwrap() : null;
-        //?} else {
+        *///?} else {
 
-        /*var tag = CompatItemStack.hasTag(item) ? Objects.requireNonNull(CompatItemStack.getTag(item)) : null;
+        var tag = CompatItemStack.hasTag(item) ? Objects.requireNonNull(CompatItemStack.getTag(item)) : null;
         var pos = tag != null && tag.contains("HomePos")
                 ? BlockPos.of(tag.getLong("HomePos"))
                 : null;
         var dim = tag != null && tag.contains("HomeDim")
                 ? new CompatResourceLocation(tag.getString("HomeDim")).unwrap()
                 : null;
-        *///?}
+        //?}
 
         if (pos != null && dim != null) {
             pd.homePosition = pos;
@@ -177,10 +173,10 @@ public class CollarItem extends Item {
                 1.0f, 1.0f
         );
         //? if >=1.21 {
-        return CompatItemStack.of(petData.collar);
-         //?} else {
         /*return CompatItemStack.of(petData.collar);
-        *///?}
+        *///?} else {
+        return CompatItemStack.of(petData.collar);
+         //?}
     }
 
     public static void removePet(TamableAnimal tame, PetData petData) {
@@ -192,18 +188,19 @@ public class CollarItem extends Item {
     }
 
     @Override
+    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
 
         //? if >=1.21 {
-        long poslong = stack.getOrDefault(Components.HOME_POS, 0L);
+        /*long poslong = stack.getOrDefault(Components.HOME_POS, 0L);
         BlockPos pos = poslong != 0L ? BlockPos.of(poslong) : null;
-        //?} else {
-        /*CompoundTag nbt = CompatItemStack.getTag(stack);
+        *///?} else {
+        CompoundTag nbt = CompatItemStack.getTag(stack);
         BlockPos pos = null;
         if (nbt != null && nbt.contains("HomePos")) {
             pos = BlockPos.of(nbt.getLong("HomePos"));
         }
-        *///?}
+        //?}
 
         if (pos != null) {
             tooltip.add(Component.literal("Home Position: ")

@@ -19,14 +19,14 @@ public class Item extends net.minecraft.world.item.Item {
     }
 
     //? if >=1.21 {
-    @Override
+    /*@Override
     public void appendHoverText(@NotNull ItemStack stack, @NotNull TooltipContext tooltipContext, @NotNull List<Component> tooltip, @NotNull TooltipFlag tooltipFlag) {
         compatAppendHoverText(stack, tooltip, tooltipFlag);
     }
-    //?} else {
-    /*@Override
+    *///?} else {
+    @Override
     public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
         compatAppendHoverText(stack, tooltip, context);
     }
-    *///?}
+    //?}
 }

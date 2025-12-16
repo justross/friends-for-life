@@ -20,6 +20,7 @@
   "item.friendsforlife.black_ocarina": "Black Ocarina",
   "category.friendsforlife.keys": "Friends For Life",
   "key.friendsforlife.open_book": "Open Pet Roster",
+  "itemgroup.friendsforlife": "Friends For Life",
   "message.friendsforlife.default_home_set": "Default home location set",
   "message.friendsforlife.home_set": "Home location set",
   "message.friendsforlife.home_unset": "Home location removed",

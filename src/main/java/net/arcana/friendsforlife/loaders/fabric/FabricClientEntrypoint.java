@@ -1,3 +1,4 @@
+//? if fabric {
 package net.arcana.friendsforlife.loaders.fabric;
 
 
@@ -11,6 +12,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
@@ -27,8 +29,6 @@ public class FabricClientEntrypoint implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        HomeBlockRenderer.register();
-
         openBookKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.friendsforlife.open_book",
                 InputConstants.Type.KEYSYM,
@@ -114,6 +114,13 @@ public class FabricClientEntrypoint implements ClientModInitializer {
             ClientPetList.reset();
             ClientOcarinaRegistry.clear();
         });
+
+        // Home renderer block
+        WorldRenderEvents.AFTER_ENTITIES.register((context) -> {
+            HomeBlockRenderer.render(context.matrixStack(), context.camera());
+        });
+
     }
 
 }
+//?}

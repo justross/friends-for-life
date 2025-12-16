@@ -1,11 +1,10 @@
 package net.arcana.friendsforlife.petdatabase;
 
+import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.TameableWanderHelper;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
-import net.arcana.friendsforlife.packets.PetListPacket;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.NBTCodec;
@@ -13,10 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -27,7 +23,6 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -119,10 +114,10 @@ public class PetData {
                 this.position.toShortString(),
                 this.homePosition != null ? this.homePosition.asLong() : 0L,
                 //? if <1.21 {
-                /*this.homeDimension != null ? this.homeDimension.location().toString() : ""
-                 *///?} else {
                 this.homeDimension != null ? this.homeDimension.location().toString() : ""
-                //?}
+                 //?} else {
+                /*this.homeDimension != null ? this.homeDimension.location().toString() : ""
+                *///?}
         );
     }
 
@@ -294,6 +289,10 @@ public class PetData {
 
         tame.load(nbtCopy);
         entityData = nbtCopy;
+
+        //? if >=1.21
+        /*tame.setPos(x, y, z);*/
+
         server.getLevel(worldKey).addFreshEntity(tame);
 
         tame.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
@@ -336,7 +335,7 @@ public class PetData {
         if (peh.entity() != null) {
             TameableWanderHelper.stopWandering(peh.entity());
         } else {
-            FabricEntrypoint.LOGGER.warn("Unable to find entity for removed pet");
+            Init.LOGGER.warn("Unable to find entity for removed pet");
         }
 
     }

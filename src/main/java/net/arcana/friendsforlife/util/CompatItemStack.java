@@ -18,24 +18,23 @@ public class CompatItemStack {
     @Nullable
     public static CompoundTag getTag(ItemStack stack, HolderLookup.Provider provider) {
         //? if >=1.21 {
-        return (CompoundTag) stack.save(provider, new CompoundTag());
-         //?} else {
-        /*return stack.hasTag() ? stack.getTag() : null;
-        *///?}
+        /*return (CompoundTag) stack.save(provider, new CompoundTag());
+         *///?} else {
+        return stack.hasTag() ? stack.getTag() : null;
+        //?}
     }
 
     @Nullable
     public static CompoundTag getTag(ItemStack stack) {
         //? if >=1.21 {
-        return (CompoundTag) stack.save(HolderLookup.Provider.create(Stream.empty()), new CompoundTag());
-         //?} else {
-        /*return stack.hasTag() ? stack.getTag() : null;
-        *///?}
+        /*return (CompoundTag) stack.save(HolderLookup.Provider.create(Stream.empty()), new CompoundTag());
+         *///?} else {
+        return stack.hasTag() ? stack.getTag() : null;
+        //?}
     }
 
     //? if >=1.21 {
-    public static ItemStack setTag(ItemStack stack, CompoundTag tag) {
-        //? if >=1.21 {
+    /*public static ItemStack setTag(ItemStack stack, CompoundTag tag) {
         if (stack.isEmpty()) return stack;
 
         Tag serialized = stack.save(HolderLookup.Provider.create(Stream.empty()), tag);
@@ -46,48 +45,48 @@ public class CompatItemStack {
 
         return newStack;
     }
-    //?} else {
-    /*public static ItemStack setTag(ItemStack stack, CompoundTag tag) {
+    *///?} else {
+    public static ItemStack setTag(ItemStack stack, CompoundTag tag) {
         stack.setTag(tag);
         return stack;
     }
-    *///?}
+    //?}
 
 
     public static boolean hasTag(ItemStack stack) {
         //? if > 1.21 {
-        return true;
-         //?} else {
-        /*return stack.hasTag();
-        *///?}
+        /*return true;
+         *///?} else {
+        return stack.hasTag();
+        //?}
     }
 
     public static CompoundTag getOrCreateTag(ItemStack stack) {
         //? if >=1.21 {
-        return (CompoundTag) stack.save(HolderLookup.Provider.create(Stream.empty()), new CompoundTag());
-         //?} else {
-        /*return stack.getOrCreateTag();
-        *///?}
+        /*return (CompoundTag) stack.save(HolderLookup.Provider.create(Stream.empty()), new CompoundTag());
+         *///?} else {
+        return stack.getOrCreateTag();
+        //?}
     }
 
     public static CompoundTag save(ItemStack stack, CompoundTag tag, Level level) {
         //? if >=1.21 {
-        return (CompoundTag) stack.save(level.registryAccess());
-         //?} else {
-        /*return stack.save(tag);
-        *///?}
+        /*return (CompoundTag) stack.save(level.registryAccess());
+         *///?} else {
+        return stack.save(tag);
+        //?}
     }
 
     //? if >=1.21 {
-    public static ItemStack of(CompoundTag tag) {
+    /*public static ItemStack of(CompoundTag tag) {
         return ItemStack.CODEC
                 .parse(NbtOps.INSTANCE, tag)
                 .result()
                 .orElse(ItemStack.EMPTY);
     }
-    //?} else {
-    /*public static ItemStack of(CompoundTag tag) {
+    *///?} else {
+    public static ItemStack of(CompoundTag tag) {
         return ItemStack.of(tag);
     }
-    *///?}
+    //?}
 }

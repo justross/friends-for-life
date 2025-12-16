@@ -1,7 +1,7 @@
 package net.arcana.friendsforlife.homeblock;
 
+import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.Net;
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.SavedData;
@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -46,7 +45,7 @@ public class HomeBlock extends SavedData {
                 ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(dimStr).unwrap());
                 state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
             } catch (Exception e) {
-                FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Skipped invalid home entry: " + key);
+                Init.LOGGER.error(Init.MOD_ID, "Skipped invalid home entry: " + key);
             }
         }
         return state;

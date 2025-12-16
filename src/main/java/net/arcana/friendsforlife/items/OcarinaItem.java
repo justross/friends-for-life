@@ -7,9 +7,7 @@ import net.arcana.friendsforlife.TaskScheduler;
 import net.arcana.friendsforlife.client.ClientOcarinaRegistry;
 import net.arcana.friendsforlife.client.ClientPetData;
 import net.arcana.friendsforlife.client.ClientPetList;
-//? if >=1.21 {
-import net.arcana.friendsforlife.components.Components;
- //?}
+import net.arcana.friendsforlife.components.components.Components;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
 import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
@@ -17,8 +15,10 @@ import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.util.CompatItemStack;
 import net.arcana.friendsforlife.util.Item;
+//? if fabric {
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+//?}
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
@@ -48,20 +48,20 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
     public boolean isFoil(ItemStack stack) {
         //? if >=1.21 {
-        String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
+        /*String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
         if (ocarinaUuidString == null) return false;
         UUID ocarinaUuid = UUID.fromString(ocarinaUuidString);
         return ClientOcarinaRegistry.hasPet(ocarinaUuid);
 
-        //?} else {
-        /*if (CompatItemStack.getTag(stack) == null || !CompatItemStack.getTag(stack).contains("ocarinaUuid"))
+        *///?} else {
+        if (CompatItemStack.getTag(stack) == null || !CompatItemStack.getTag(stack).contains("ocarinaUuid"))
             return false;
         UUID ocarinaUuid = UUID.fromString(CompatItemStack.getTag(stack).getString("ocarinaUuid"));
         return ClientOcarinaRegistry.hasPet(ocarinaUuid);
-        *///?}
+        //?}
     }
 
     @Override
@@ -83,17 +83,17 @@ public class OcarinaItem extends Item {
             if (!world.isClientSide) {
                 //? if >=1.21 {
 
-                String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");
+                /*String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");
                 UUID ocarinaUuid = null;
                 if (!uuidString.isEmpty()) {
                     ocarinaUuid = UUID.fromString(uuidString);
                 }
-                //?} else {
-                /*CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
+                *///?} else {
+                CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
                 UUID ocarinaUuid = nbt.contains("ocarinaUuid")
                         ? UUID.fromString(nbt.getString("ocarinaUuid"))
                         : null;
-                *///?}
+                //?}
                 OcarinaRegistry registry = OcarinaRegistry.get(world.getServer());
                 UUID petUuid = registry.getPetForOcarina(ocarinaUuid);
                 PetTracker tracker = PetTracker.get(world.getServer());
@@ -175,13 +175,13 @@ public class OcarinaItem extends Item {
         if (!player.getCooldowns().isOnCooldown(this)) {
             CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
             //? if >=1.21 {
-            String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
+            /*String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
             UUID ocarinaUuid = ocarinaUuidString != null ? UUID.fromString(ocarinaUuidString) : null;
-            //?} else {
-            /*UUID ocarinaUuid = nbt.contains("ocarinaUuid")
+            *///?} else {
+            UUID ocarinaUuid = nbt.contains("ocarinaUuid")
                     ? UUID.fromString(nbt.getString("ocarinaUuid"))
                     : null;
-            *///?}
+            //?}
             OcarinaRegistry registry = OcarinaRegistry.get(world.getServer());
             UUID petUuid = registry.getPetForOcarina(ocarinaUuid);
 
@@ -193,7 +193,7 @@ public class OcarinaItem extends Item {
                     // Assign uuid to ocarina if it doesn't have one
 
                     //? if >=1.21 {
-                    if (ocarinaUuidString == null) {
+                    /*if (ocarinaUuidString == null) {
                         ocarinaUuid = UUID.randomUUID();
                         stack.set(Components.OCARINA_UUID, ocarinaUuid.toString());
                     }
@@ -201,15 +201,15 @@ public class OcarinaItem extends Item {
                     player.getInventory().setChanged();
 
                     player.displayClientMessage(Component.translatable("message.friendsforlife.ocarina_bound"), true);
-                    //?} else {
-                    /*if (!nbt.contains("ocarinaUuid")) {
+                    *///?} else {
+                    if (!nbt.contains("ocarinaUuid")) {
                         ocarinaUuid = UUID.randomUUID();
                         nbt.putString("ocarinaUuid", ocarinaUuid.toString());
                     }
                     registry.register(ocarinaUuid, petData.uuid, world.getServer());
 
                     player.displayClientMessage(Component.translatable("message.friendsforlife.ocarina_bound"), true);
-                    *///?}
+                    //?}
 
                     return InteractionResult.SUCCESS;
                 } else {
@@ -227,7 +227,7 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag context) {
         String name = getPetName(stack);
         if (!name.isEmpty()) {
@@ -253,7 +253,7 @@ public class OcarinaItem extends Item {
 
     private String getPetName(ItemStack stack) {
         //? if >=1.21 {
-        String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");
+        /*String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");
         if (!uuidString.isEmpty()) {
             var ocarinaUuid = UUID.fromString(uuidString);
             UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
@@ -264,8 +264,8 @@ public class OcarinaItem extends Item {
                 }
             }
         }
-        //?} else {
-        /*CompoundTag nbt = CompatItemStack.getTag(stack);
+        *///?} else {
+        CompoundTag nbt = CompatItemStack.getTag(stack);
         if (nbt != null && nbt.contains("ocarinaUuid")) {
             UUID ocarinaUuid = UUID.fromString(nbt.getString("ocarinaUuid"));
             UUID petUuid = ClientOcarinaRegistry.getPet(ocarinaUuid);
@@ -276,7 +276,7 @@ public class OcarinaItem extends Item {
                 }
             }
         }
-        *///?}
+        //?}
 
         return "";
     }

@@ -15,14 +15,14 @@ public class CompatComponent {
     @Nullable
     public static MutableComponent fromJson(String string, @Nullable HolderLookup.Provider provider) {
         //? if >=1.21 {
-        if (provider == null) {
+        /*if (provider == null) {
             MinecraftServer server = ServerContext.getServer();
             provider = server.registryAccess();
         }
         return string == null ? null : Component.Serializer.fromJson(string, provider);
-        //?} else {
-        /*return string == null ? null : Component.Serializer.fromJson(string);
-         *///?}
+        *///?} else {
+        return string == null ? null : Component.Serializer.fromJson(string);
+         //?}
     }
 
     /**
@@ -30,14 +30,14 @@ public class CompatComponent {
      */
     public static String toJson(Component component, @Nullable HolderLookup.Provider provider) {
         //? if >=1.21 {
-        if (provider == null) {
+        /*if (provider == null) {
             MinecraftServer server = ServerContext.getServer();
             provider = server.registryAccess();
         }
         return Component.Serializer.toJson(component, provider);
-        //?} else {
-        /*return Component.Serializer.toJson(component);
-         *///?}
+        *///?} else {
+        return Component.Serializer.toJson(component);
+         //?}
     }
 
     /**

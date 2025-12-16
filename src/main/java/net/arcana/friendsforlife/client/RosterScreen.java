@@ -9,9 +9,11 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.StackLayout;
 import io.wispforest.owo.ui.core.*;
+import io.wispforest.owo.ui.core.Color;
+import io.wispforest.owo.ui.core.Insets;
+import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.PetListRequestPacket;
 import net.arcana.friendsforlife.packets.PetTeleportRequestPacket;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
@@ -38,11 +40,11 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     private ClientPetData currentPet;
 
     private @Nullable ButtonComponent homeButton; // Component for the send pet to home button
+    private @Nullable ButtonComponent summonButton;
     private @Nullable LabelComponent homeLabel; // Component for the pet's home coordinates
     private @Nullable LabelComponent defaultHomeLabel; // Component for the default home coordinates
     private HomeBlockUpdateEvents.IListener homeUpdateListener;
 
-    private @Nullable ButtonComponent summonButton;
 
     private List<ClientPetData> pets;
 
@@ -60,7 +62,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         this.homeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "home-position-label");
         assert homeLabel != null;
 
-        this.homeButton = this.uiAdapter.rootComponent.childById(ButtonComponent.class, "home-button");
+        this.homeButton = ((ButtonComponent) this.uiAdapter.rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "home-button"));
         assert homeButton != null;
 
         this.defaultHomeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "default-home-label");
@@ -112,12 +114,12 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     protected void build(StackLayout rootComponent) {
 
         // Summon button
-        this.summonButton = rootComponent.childById(ButtonComponent.class, "summon-button");
+        this.summonButton = (ButtonComponent) rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "summon-button");
         assert summonButton != null;
 
         summonButton.onPress(button -> {
             if (currentPet == null) {
-                FabricEntrypoint.LOGGER.error("Unable to find current pet.");
+                Init.LOGGER.error("Unable to find current pet.");
                 return;
             }
 
@@ -135,7 +137,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         summonButton.visible = currentPet != null;
 
         // Home button
-        this.homeButton = this.uiAdapter.rootComponent.childById(ButtonComponent.class, "home-button");
+        this.homeButton = (ButtonComponent) this.uiAdapter.rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "home-button");
         assert homeButton != null;
         homeButton.visible = currentPet != null;
 
@@ -185,7 +187,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         }
 
         // Close button
-        ButtonComponent buttonComponent = rootComponent.childById(ButtonComponent.class, "close-button");
+        ButtonComponent buttonComponent = (ButtonComponent) rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "close-button");
         if (buttonComponent != null) {
             buttonComponent.onPress(button -> {
                 onClose();
@@ -259,7 +261,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             if (homePos != null) {
                 this.homeLabel.text(Component.literal(homePos.toShortString()));
             } else {
-                FabricEntrypoint.LOGGER.warn("Expected home position to be defined.");
+                Init.LOGGER.warn("Expected home position to be defined.");
             }
         }
     }

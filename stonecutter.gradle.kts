@@ -1,7 +1,7 @@
 plugins {
     id("dev.kikugie.stonecutter")
 }
-stonecutter active "1.21.1-fabric"
+stonecutter active "1.20.1-fabric"
 
 stonecutter registerChiseled tasks.register("chiseledBuild", stonecutter.chiseled) { 
     group = "project"
@@ -16,6 +16,7 @@ allprojects {
         maven("https://maven.fabricmc.net/")
         // Owo
         maven("https://maven.wispforest.io")
+        maven("https://maven.wispforest.io/releases")
         maven {
             name = "Terraformers"
             url = uri("https://maven.terraformersmc.com/")

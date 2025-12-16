@@ -6,7 +6,6 @@ import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -20,25 +19,17 @@ import java.util.Objects;
 public class Commands {
 
     public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(net.minecraft.commands.Commands.literal("listpets")
-                    // /listpets → lists your own pets
-                    .executes(Commands::listPetsSelf)
 
-                    // /listpets <player> → lists another player's pets
-                    .then(net.minecraft.commands.Commands.argument("player", EntityArgument.player())
-                            .executes(Commands::listPetsOther)));
-        });
     }
 
     // /listpets (no argument)
-    private static int listPetsSelf(CommandContext<CommandSourceStack> context) {
+    public static int listPetsSelf(CommandContext<CommandSourceStack> context) {
         ServerPlayer player = context.getSource().getPlayer();
         return listPetsInternal(context.getSource(), player);
     }
 
     // /listpets <player>
-    private static int listPetsOther(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    public static int listPetsOther(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(context, "player");
         return listPetsInternal(context.getSource(), player);
     }

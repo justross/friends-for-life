@@ -1,8 +1,8 @@
 package net.arcana.friendsforlife.petdatabase;
 
 import io.netty.buffer.Unpooled;
+import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.Net;
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.PetListPacket;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatItemStack;
@@ -13,14 +13,12 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -31,14 +29,14 @@ public class PetTracker extends SavedData {
 
     @Nullable
     public PetData addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
-        FabricEntrypoint.LOGGER.info("adding new entity to be tracked: " + tame.getName());
+        Init.LOGGER.info("adding new entity to be tracked: " + tame.getName());
         if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUUID()))) {
             CompoundTag collar = new CompoundTag();
             //? if >=1.21 {
-            collar = CompatItemStack.save(item, collar, player.level());
-            //?} else {
-            /*CompatItemStack.save(item, collar, player.level());
-            *///?}
+            /*collar = CompatItemStack.save(item, collar, player.level());
+            *///?} else {
+            CompatItemStack.save(item, collar, player.level());
+            //?}
             PetData pd = new PetData(tame, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
             Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
@@ -55,7 +53,7 @@ public class PetTracker extends SavedData {
         }
         tracked.remove(uuid);
         if (player == null) {
-            FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Could not find player to update pet list for removed pet: " + uuid);
+            Init.LOGGER.error("Could not find player to update pet list for removed pet: " + uuid);
             return;
         }
         var petList = PetTracker.toEntries(server);

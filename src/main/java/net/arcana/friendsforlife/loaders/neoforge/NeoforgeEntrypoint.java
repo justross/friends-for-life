@@ -1,18 +1,25 @@
-package net.arcana.friendsforlife.loaders.neoforge;//? if neoforge {
-/*package com.example.mymod.loaders.neoforge;
+//? if neoforge {
+/*package net.arcana.friendsforlife.loaders.neoforge;
 
-import com.example.mymod.ExampleMod;
-import com.mojang.logging.LogUtils;
+import net.arcana.friendsforlife.*;
+import net.arcana.friendsforlife.petdatabase.PetWatcher;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
-import org.slf4j.Logger;
+import net.neoforged.neoforge.common.NeoForge;
 
-@Mod("examplemod")
+@Mod("friendsforlife")
 public class NeoforgeEntrypoint {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public NeoforgeEntrypoint(IEventBus modBus) {
+        PetWatcher.register();
+        Commands.register();
 
-    public NeoforgeEntrypoint() {
-        LOGGER.info("Hello from NeoforgeEntrypoint!");
-        ExampleMod.initialize();
+        Net.register();
+        TaskScheduler.register();
+
+        NeoForge.EVENT_BUS.register(CommonBusHandler.class);
+        modBus.register(ModBusHandler.class);
     }
+
+
 }
 *///?}

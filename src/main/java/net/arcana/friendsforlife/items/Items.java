@@ -1,67 +1,44 @@
 package net.arcana.friendsforlife.items;
 
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
+import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.*;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class Items {
     public static final Map<DyeColor, Item> COLORED_OCARINAS = new EnumMap<>(DyeColor.class);
 
-    static {
+    public static Item COLLAR ;
+    public static Item ROSTER;
+    public static Item OCARINA;
+
+    public static void registerAll(BiConsumer<ResourceLocation, Item> registrar) {
         for (DyeColor color : DyeColor.values()) {
             String name = color.getName() + "_ocarina";
-
-            Item item = registerItem(
-                    name,
-                    new OcarinaItem(ItemSettings.create().stacksTo(1)));
-
+            Item item = new OcarinaItem(ItemSettings.create().stacksTo(1));
+            registrar.accept(id(name), item);
             COLORED_OCARINAS.put(color, item);
         }
+
+        COLLAR = register(registrar, "collar",
+                new CollarItem(ItemSettings.create().stacksTo(1)));
+        ROSTER = register(registrar, "pet_roster",
+                new RosterItem(ItemSettings.create().stacksTo(1)));
+        OCARINA = register(registrar, "ocarina",
+                new OcarinaItem(ItemSettings.create().stacksTo(1)));
     }
 
-    public static final Item COLLAR = registerItem("collar",
-            new CollarItem(ItemSettings.create().stacksTo(1)));
-    public static final Item ROSTER = registerItem("pet_roster",
-            new RosterItem(ItemSettings.create().stacksTo(1)));
-    public static final Item OCARINA = registerItem("ocarina",
-            new OcarinaItem(ItemSettings.create().stacksTo(1)));
-
-    public static final CreativeModeTab ITEMS = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB,
-            new CompatResourceLocation(FabricEntrypoint.MOD_ID, "friendsforlife").unwrap(), FabricItemGroup.builder()
-                    .title(Component.literal("Friends For Life"))
-                    .icon(() -> new ItemStack(COLLAR)).displayItems(((displayContext, entries) -> {
-                        entries.accept(COLLAR);
-                        entries.accept(ROSTER);
-                        entries.accept(OCARINA);
-                        for (Item dyed : COLORED_OCARINAS.values()) {
-                            entries.accept(dyed);
-                        }
-                    })).build());
-
-    private static void addItemsToTab(FabricItemGroupEntries entries) {
-        entries.accept(COLLAR);
-        entries.accept(ROSTER);
-        entries.accept(OCARINA);
-
-        for (Item dyed : COLORED_OCARINAS.values()) {
-            entries.accept(dyed);
-        }
+    private static Item register(BiConsumer<ResourceLocation, Item> registrar, String name, Item item) {
+        registrar.accept(id(name), item);
+        return item;
     }
 
-    private static Item registerItem(String name, Item item) {
-        return Registry.register(BuiltInRegistries.ITEM, new CompatResourceLocation(FabricEntrypoint.MOD_ID, name).unwrap(), item);
-    }
-
-    public static void register() {
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(Items::addItemsToTab);
+    private static ResourceLocation id(String name) {
+        return new CompatResourceLocation(Init.MOD_ID, name).unwrap();
     }
 }

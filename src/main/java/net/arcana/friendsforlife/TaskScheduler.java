@@ -1,6 +1,5 @@
 package net.arcana.friendsforlife;
 
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -11,14 +10,14 @@ public class TaskScheduler {
     private static final List<Task> TASKS = new ArrayList<>();
 
     public static void register() {
-        ServerTickEvents.END_SERVER_TICK.register(server -> tick());
+
     }
 
     public static void schedule(Runnable action, int ticks) {
         TASKS.add(new Task(ticks, action));
     }
 
-    private static void tick() {
+    public static void tick() {
         Iterator<Task> it = TASKS.iterator();
 
         while (it.hasNext()) {

@@ -17,18 +17,18 @@ public abstract class SavedData extends net.minecraft.world.level.saveddata.Save
     }
 
     //? if >=1.21 {
-    @Override
+    /*@Override
     public @NotNull CompoundTag save(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider provider) {
         write(tag);
         return tag;
     }
-    //?} else {
-    /*@Override
+    *///?} else {
+    @Override
     public CompoundTag save(CompoundTag tag) {
         write(tag);
         return tag;
     }
-    *///?}
+    //?}
 
     /**
      * Version-agnostic wrapper for save method
@@ -41,10 +41,12 @@ public abstract class SavedData extends net.minecraft.world.level.saveddata.Save
             Function<CompoundTag, T> fromNbt,
             Supplier<T> constructor
     ) {
+        Objects.requireNonNull(server, "server cannot be null");
+
         DimensionDataStorage manager = Objects.requireNonNull(server.getLevel(Level.OVERWORLD)).getDataStorage();
 
         //? if >1.21 {
-        @SuppressWarnings("DataFlowIssue") net.minecraft.world.level.saveddata.SavedData.Factory<T> factory =
+        /*@SuppressWarnings("DataFlowIssue") net.minecraft.world.level.saveddata.SavedData.Factory<T> factory =
                 new net.minecraft.world.level.saveddata.SavedData.Factory<>(
                         constructor,
                         (tag, provider) -> fromNbt.apply(tag),
@@ -52,8 +54,8 @@ public abstract class SavedData extends net.minecraft.world.level.saveddata.Save
                 );
 
         return manager.computeIfAbsent(factory, key);
-        //?} else {
-        /*return manager.computeIfAbsent(fromNbt::apply, constructor, key);
-        *///?}
+        *///?} else {
+        return manager.computeIfAbsent(fromNbt::apply, constructor, key);
+        //?}
     }
 }

@@ -4,8 +4,10 @@ import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.client.RosterScreen;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.util.Item;
+//? if fabric {
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+//?}
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
@@ -56,12 +58,13 @@ public class RosterItem extends Item {
         return InteractionResultHolder.success(player.getItemInHand(hand));
     }
 
-    @Environment(EnvType.CLIENT)
+    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
     private void openRosterScreen() {
         Minecraft.getInstance().setScreen(new RosterScreen());
     }
 
     @Override
+            /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
         if (Screen.hasShiftDown()) {
             List<FormattedCharSequence> lines = Tooltip.splitTooltip(

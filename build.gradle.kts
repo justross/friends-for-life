@@ -1,7 +1,7 @@
 import org.gradle.internal.declarativedsl.parsing.main
 
 plugins {
-    id("fabric-loom") version "1.3.+"
+//    id("fabric-loom") version "1.3.+"
     id("dev.isxander.modstitch.base") version "0.5.12"
 }
 
@@ -38,6 +38,7 @@ modstitch {
         modVersion = "1.1.0"
         modGroup = "net.arcana"
         modAuthor = "conbo, jjorge"
+        modDescription = "Take your pets on your next adventure with this QoL mod!"
 
         fun <K, V> MapProperty<K, V>.populate(block: MapProperty<K, V>.() -> Unit) {
             block()
@@ -137,6 +138,11 @@ dependencies {
 
         modstitchModImplementation("io.wispforest:owo-lib:${property("deps.owo_version")}")
         modstitchModImplementation("com.terraformersmc:modmenu:${property("deps.modmenu_version")}")
+    }
+
+    modstitch.moddevgradle {
+        modstitchModImplementation("io.wispforest:owo-lib-neoforge:${property("deps.owo_version")}")
+        modstitchModImplementation("org.sinytra.forgified-fabric-api:fabric-api-base:0.4.42+e0539096d1")
     }
 
     // Anything else in the dependencies block will be used for all platforms.

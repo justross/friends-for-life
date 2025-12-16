@@ -3,7 +3,6 @@ package net.arcana.friendsforlife;
 import io.wispforest.owo.network.OwoNetChannel;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
-import net.arcana.friendsforlife.loaders.fabric.FabricEntrypoint;
 import net.arcana.friendsforlife.packets.*;
 import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
 import net.arcana.friendsforlife.petdatabase.PetData;
@@ -88,7 +87,7 @@ public class Net {
                             entity = petData.recreateEntity(server, targetWorldKey, x, y, z);
 
                             if (entity == null) {
-                                FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Failed to recreate entity for pet UUID: " + petUuid);
+                                Init.LOGGER.error("Failed to recreate entity for pet UUID: " + petUuid);
                                 return;
                             }
 
@@ -100,14 +99,14 @@ public class Net {
                             }
 
                         } else {
-                            FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "No pet data found for UUID: " + petUuid);
+                            Init.LOGGER.error("No pet data found for UUID: " + petUuid);
                         }
 
                         teleportLocks.remove(petUuid);
                     }
                 });
             } catch (Exception e) {
-                FabricEntrypoint.LOGGER.error(FabricEntrypoint.MOD_ID, "Bad summon packet from " + handler.player().getName().getString() + ": " + e);
+                Init.LOGGER.error("Bad summon packet from " + handler.player().getName().getString() + ": " + e);
             }
         });
 

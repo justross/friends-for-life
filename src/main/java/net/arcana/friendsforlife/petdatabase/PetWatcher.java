@@ -3,7 +3,6 @@ package net.arcana.friendsforlife.petdatabase;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.PetUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -17,10 +16,10 @@ public class PetWatcher {
     List<PetUpdatePacket.Entry> changedPets = new ArrayList<>();
 
     public static void register() {
-        ServerTickEvents.END_SERVER_TICK.register(PetWatcher::onServerTick);
+
     }
 
-    private static void onServerTick(MinecraftServer server) {
+    public static void onServerTick(MinecraftServer server) {
         if (++tickCounter % 100 != 0)
             return;
 

@@ -37,6 +37,10 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+//? if neoforge {
+/*import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+*///?}
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
@@ -51,6 +55,7 @@ public class CollarItem extends Item {
 
     @Override
     /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+    /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     public boolean isFoil(ItemStack stack) {
         //? if >=1.21 {
         /*return stack.getOrDefault(Components.HOME_POS, 0L) != 0;
@@ -74,7 +79,7 @@ public class CollarItem extends Item {
                 /*boolean shouldRemove = stack.getOrDefault(Components.HOME_POS, 0L) != 0 && pos == null;
                 *///?} else {
                 CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
-                boolean shouldRemove = pos == null && nbt.getLong("HomePos") != 0;
+                boolean shouldRemove = homeSetRequestPos == null && nbt.getLong("HomePos") != 0;
                 //?}
                 if (shouldRemove) {
                     //? if >=1.21 {
@@ -96,7 +101,7 @@ public class CollarItem extends Item {
                     stack.set(Components.HOME_DIM, dim.location().toString());
                     *///?} else {
 
-                    nbt.putLong("HomePos", pos.asLong());
+                    nbt.putLong("HomePos", homeSetRequestPos.asLong());
                     nbt.putString("HomeDim", dim.location().toString());
 
                     stack = CompatItemStack.setTag(stack, nbt);
@@ -132,7 +137,7 @@ public class CollarItem extends Item {
         *///?} else {
 
         var tag = CompatItemStack.hasTag(item) ? Objects.requireNonNull(CompatItemStack.getTag(item)) : null;
-        var pos = tag != null && tag.contains("HomePos")
+        var homeSetRequestPos = tag != null && tag.contains("HomePos")
                 ? BlockPos.of(tag.getLong("HomePos"))
                 : null;
         var dim = tag != null && tag.contains("HomeDim")
@@ -187,6 +192,7 @@ public class CollarItem extends Item {
 
     @Override
     /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+    /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
 
         //? if >=1.21 {
@@ -194,9 +200,9 @@ public class CollarItem extends Item {
         BlockPos pos = poslong != 0L ? BlockPos.of(poslong) : null;
         *///?} else {
         CompoundTag nbt = CompatItemStack.getTag(stack);
-        BlockPos pos = null;
+        BlockPos homeSetRequestPos = null;
         if (nbt != null && nbt.contains("HomePos")) {
-            pos = BlockPos.of(nbt.getLong("HomePos"));
+            homeSetRequestPos = BlockPos.of(nbt.getLong("HomePos"));
         }
         //?}
 

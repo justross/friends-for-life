@@ -43,7 +43,7 @@ public class ClientNet {
                         if (!update.customName().isEmpty()) {
                             pet.entityData.putString("CustomName", update.customName());
                         }
-                        pet.position = update.pos().toShortString();
+                        pet.position = update.petTrackerUpdatePos().toShortString();
                     }
                 }
             });
@@ -75,7 +75,7 @@ public class ClientNet {
             Minecraft.getInstance().execute(() -> {
                 ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, packet.dimId());
                 assert Minecraft.getInstance().player != null;
-                HomeBlockUpdateEvents.fire(Minecraft.getInstance().player.getUUID(), packet.pos(), dim);
+                HomeBlockUpdateEvents.fire(Minecraft.getInstance().player.getUUID(), packet.homeUpdatePos(), dim);
             });
         });
 

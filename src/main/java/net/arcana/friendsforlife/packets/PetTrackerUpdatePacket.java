@@ -10,9 +10,9 @@ public record PetTrackerUpdatePacket(List<Entry> pets) {
     /**
      * @param uuid
      * @param customName - The JSON string customName that is stored in the CustomName field in NBT
-     * @param pos
+     * @param petTrackerUpdatePos
      */
-    public record Entry(UUID uuid, String customName, BlockPos pos) {
+    public record Entry(UUID uuid, String customName, BlockPos petTrackerUpdatePos) {
     }
 }
 

@@ -35,6 +35,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+//? if neoforge {
+/*import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+*///?}
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -46,9 +50,10 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-            /*? if fabric {*/
+            //? if neoforge
+    /*@OnlyIn(Dist.CLIENT)*/
+            //? if fabric
     @Environment(EnvType.CLIENT)
-            /*?}*/
     public boolean isFoil(ItemStack stack) {
         //? if >=1.21 {
         /*String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
@@ -231,9 +236,10 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-            /*? if fabric {*/
+            //? if neoforge
+    /*@OnlyIn(Dist.CLIENT)*/
+            //? if fabric
     @Environment(EnvType.CLIENT)
-            /*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag context) {
         String name = getPetName(stack);
         if (!name.isEmpty()) {

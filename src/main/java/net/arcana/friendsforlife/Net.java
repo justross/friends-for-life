@@ -66,9 +66,9 @@ public class Net {
         Net.CHANNEL.registerServerbound(PetTeleportRequestPacket.class, (packet, handler) -> {
             try {
                 UUID petUuid = packet.uuid();
-                int x = packet.pos().getX();
-                int y = packet.pos().getY();
-                int z = packet.pos().getZ();
+                int x = packet.petTeleportRequestPos().getX();
+                int y = packet.petTeleportRequestPos().getY();
+                int z = packet.petTeleportRequestPos().getZ();
                 ResourceLocation dim = packet.dim();
                 Boolean shouldWander = packet.shouldWander();
 
@@ -124,14 +124,14 @@ public class Net {
         Net.CHANNEL.registerServerbound(HomeSetRequestPacket.class, (packet, handler) -> {
             PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().getServer())).get(packet.uuid());
             if (pd != null) {
-                pd.homePosition = packet.pos();
+                pd.homePosition = packet.homeSetRequestPos();
                 pd.homeDimension = ResourceKey.create(Registries.DIMENSION, packet.dimId());
             }
         });
 
         // Set default home block
         Net.CHANNEL.registerServerbound(DefaultSetHomeRequestPacket.class, (packet, handler) -> {
-            HomeBlock.get(Objects.requireNonNull(handler.player().getServer())).setHome(handler.player(), packet.pos(),
+            HomeBlock.get(Objects.requireNonNull(handler.player().getServer())).setHome(handler.player(), packet.defaultSetHomeRequestPos(),
                     ResourceKey.create(Registries.DIMENSION, packet.dimId()));
         });
 
@@ -139,7 +139,7 @@ public class Net {
         Net.CHANNEL.registerServerbound(RespawnUpdatePacket.class, (packet, handler) -> {
             if (!HomeBlock.get(Objects.requireNonNull(handler.player().getServer())).hasHome(handler.player().getUUID())) {
 
-                Net.CHANNEL.serverHandle(handler.player()).send(new HomeUpdatePacket(packet.pos(), packet.dimId()));
+                Net.CHANNEL.serverHandle(handler.player()).send(new HomeUpdatePacket(packet.respawnUpdatePos(), packet.dimId()));
             }
         });
 

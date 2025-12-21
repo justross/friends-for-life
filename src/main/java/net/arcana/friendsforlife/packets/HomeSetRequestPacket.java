@@ -8,6 +8,6 @@ import java.util.UUID;
 /** Packet for handling requests to set individual pets' home blocks
  * @uuid The pet's UUID
  */
-public record HomeSetRequestPacket(UUID uuid, BlockPos pos, ResourceLocation dimId) {
+public record HomeSetRequestPacket(UUID uuid, BlockPos homeSetRequestPos, ResourceLocation dimId) {
 
 }

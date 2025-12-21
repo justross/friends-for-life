@@ -24,6 +24,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,12 +61,14 @@ public class RosterItem extends Item {
     }
 
     /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+    /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     private void openRosterScreen() {
         Minecraft.getInstance().setScreen(new RosterScreen());
     }
 
     @Override
-            /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+    /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
         if (Screen.hasShiftDown()) {
             List<FormattedCharSequence> lines = Tooltip.splitTooltip(

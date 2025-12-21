@@ -5,5 +5,5 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.UUID;
 
-public record PetTeleportRequestPacket(UUID uuid, BlockPos pos, ResourceLocation dim, Boolean shouldWander) {
+public record PetTeleportRequestPacket(UUID uuid, BlockPos petTeleportRequestPos, ResourceLocation dim, Boolean shouldWander) {
 }

@@ -47,12 +47,12 @@ public class NeoforgeClientEntrypoint {
 
     @SubscribeEvent
     public static void onClientJoin(ClientPlayerNetworkEvent.LoggingIn event) {
-        EventHandler.handleClientJoin();
+        ClientEventHandler.handleClientJoin();
     }
 
     @SubscribeEvent
     public static void onClientLeave(ClientPlayerNetworkEvent.LoggingOut event) {
-        EventHandler.handleClientDisconnect();
+        ClientEventHandler.handleClientDisconnect();
     }
 
     @SubscribeEvent

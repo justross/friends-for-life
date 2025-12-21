@@ -1,15 +1,8 @@
-package net.arcana.friendsforlife.client;
+package net.arcana.friendsforlife;
 
-import net.arcana.friendsforlife.Init;
-import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
-import net.arcana.friendsforlife.client.homeblock.ClientHomeBlock;
-import net.arcana.friendsforlife.client.petdatabase.ClientOcarinaRegistry;
-import net.arcana.friendsforlife.client.petdatabase.ClientPetList;
 import net.arcana.friendsforlife.items.CollarItem;
 import net.arcana.friendsforlife.items.OcarinaItem;
-import net.arcana.friendsforlife.packets.OcarinaListRequestPacket;
-import net.arcana.friendsforlife.packets.PetListRequestPacket;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.minecraft.core.particles.ParticleTypes;
@@ -27,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class EventHandler {
+
 
     // cause dogs are annoying and return from a interaction early, we have to
     // overwrite nbt methods
@@ -102,18 +96,5 @@ public class EventHandler {
                 }
             }
         }
-    }
-
-    public static void handleClientJoin() {
-        Net.CHANNEL.clientHandle().send(new PetListRequestPacket());
-        ClientHomeBlock.initialize();
-        ClientOcarinaRegistry.initialize();
-        Net.CHANNEL.clientHandle().send(new OcarinaListRequestPacket());
-    }
-
-    public static void handleClientDisconnect() {
-        ClientHomeBlock.reset();
-        ClientPetList.reset();
-        ClientOcarinaRegistry.clear();
     }
 }

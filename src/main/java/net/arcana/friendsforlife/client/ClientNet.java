@@ -1,5 +1,6 @@
 package net.arcana.friendsforlife.client;
 
+import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.client.homeblock.HomeBlockUpdateEvents;
 import net.arcana.friendsforlife.client.petdatabase.ClientOcarinaRegistry;
@@ -10,6 +11,7 @@ import net.arcana.friendsforlife.packets.*;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
@@ -92,6 +94,19 @@ public class ClientNet {
 
                 ClientOcarinaRegistry.set(ocarinaId, petId);
 
+            });
+        });
+
+        // Pet misssing message from server
+        Net.CHANNEL.registerClientbound(PetMissingMessagePacket.class, (message, access) -> {
+            access.runtime().execute(() -> {
+                var pet = ClientPetList.getPet(message.uuid());
+                if (pet == null) {
+                    Init.LOGGER.warn("Pet {} could not be found in client registry", message.uuid());
+                    return;
+                }
+                var petName = ClientPetList.getPet(message.uuid()).getName();
+                access.player().displayClientMessage(Component.translatable("message.friendsforlife.pet_missing", petName), true);
             });
         });
     }

@@ -150,5 +150,6 @@ public class Net {
         Net.CHANNEL.registerClientboundDeferred(HomeUpdatePacket.class);
         Net.CHANNEL.registerClientboundDeferred(OcarinaListPacket.class);
         Net.CHANNEL.registerClientboundDeferred(OcarinaUpdatePacket.class);
+        Net.CHANNEL.registerClientboundDeferred(PetMissingMessagePacket.class);
     }
 }

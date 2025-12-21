@@ -1,15 +1,13 @@
 package net.arcana.friendsforlife.items;
 
-import net.arcana.friendsforlife.RaycastHelper;
-import net.arcana.friendsforlife.Sounds;
-import net.arcana.friendsforlife.TameableWanderHelper;
-import net.arcana.friendsforlife.TaskScheduler;
+import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.client.petdatabase.ClientOcarinaRegistry;
 import net.arcana.friendsforlife.client.petdatabase.ClientPetData;
 import net.arcana.friendsforlife.client.petdatabase.ClientPetList;
 import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.packets.PetMissingMessagePacket;
 import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
@@ -107,7 +105,7 @@ public class OcarinaItem extends Item {
                         BlockPos pos = RaycastHelper.getSafeBlock(player);
                         TaskScheduler.schedule(() -> {
                             if (petData.isDowned) {
-                                player.displayClientMessage(Component.translatable("message.friendsforlife.pet_missing", getPetName(stack)), true);
+                                Net.CHANNEL.serverHandle(player).send(new PetMissingMessagePacket(petUuid));
                             } else {
                                 var tame = petData.recreateEntity(
                                         world.getServer(),
@@ -259,6 +257,9 @@ public class OcarinaItem extends Item {
         }
     }
 
+    /*? if fabric {*/
+    @Environment(EnvType.CLIENT)
+            /*?}*/
     private String getPetName(ItemStack stack) {
         //? if >=1.21 {
         /*String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");

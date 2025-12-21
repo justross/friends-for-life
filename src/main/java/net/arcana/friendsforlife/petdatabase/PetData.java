@@ -13,6 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -203,9 +204,9 @@ public class PetData {
                 this.homePosition != null ? this.homePosition.asLong() : 0L,
                 //? if <1.21 {
                 this.homeDimension != null ? this.homeDimension.location().toString() : "",
-                //?} else {
+                 //?} else {
                 /*this.homeDimension != null ? this.homeDimension.location().toString() : "",
-                 *///?}
+                *///?}
                 this.isDowned,
                 this.mode,
                 this.modes.stream()

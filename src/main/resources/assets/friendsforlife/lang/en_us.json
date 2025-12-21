@@ -31,5 +31,7 @@
   "tooltip.friendsforlife.more_info": "Hold Shift for more info",
   "tooltip.friendsforlife.collar.info": "Makes your tamed pet invulnerable.\nCollared pets appear in the Roster.\nSneak + right-click a block to set home.\nHold ALT to view home block.",
   "tooltip.friendsforlife.roster.info": "Tracks pets with Collars applied.\nSneak + right-click to set the default home point for pets.\nHold ALT to view default home block.",
-  "tooltip.friendsforlife.ocarina.info": "Calls your pet to you.\nSneak + right-click to assign ocarina to pet.\nOnce applied, Sneak + right-click on assigned pet to send home."
+  "tooltip.friendsforlife.ocarina.info": "Calls your pet to you.\nSneak + right-click to assign ocarina to pet.\nOnce applied, Sneak + right-click on assigned pet to send home.",
+  "gui.friendsforlife.roster.guardian_mode": "Guardian Mode",
+  "gui.friendsforlife.roster.companion_mode": "Companion Mode"
 }

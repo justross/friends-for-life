@@ -150,6 +150,7 @@
                                                     <margins>
                                                         <bottom>2</bottom>
                                                     </margins>
+                                                    <tooltip-text translate="true">gui.friendsforlife.roster.companion_mode</tooltip-text>
                                                 </button>
                                                 <!-- Guardian -->
                                                 <button id="follow-mode-button-guardian">
@@ -165,6 +166,7 @@
                                                     <margins>
                                                         <bottom>3</bottom>
                                                     </margins>
+                                                    <tooltip-text translate="true">gui.friendsforlife.roster.guardian_mode</tooltip-text>
                                                 </button>
                                             </children>
 

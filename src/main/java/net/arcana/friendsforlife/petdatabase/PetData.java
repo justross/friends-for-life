@@ -1,64 +1,140 @@
 package net.arcana.friendsforlife.petdatabase;
 
-import net.arcana.friendsforlife.Init;
-import net.arcana.friendsforlife.TameableWanderHelper;
+import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.packets.PetDownedUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
+import net.arcana.friendsforlife.util.CompatConfig;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.NBTCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
+/**
+ * Used to manage the Pet's state
+ */
 public class PetData {
+    public enum FollowMode {
+        COMPANION(0),
+        GUARDIAN(1);
+
+        public final int id;
+
+        FollowMode(int id) {
+            this.id = id;
+        }
+
+        public static FollowMode fromId(int id) {
+            for (FollowMode m : values()) {
+                if (m.id == id) return m;
+            }
+            throw new IllegalArgumentException("Invalid FollowMode id: " + id);
+        }
+    }
+
     /**
      * Represents the UUID of the PetData
      *
      * @see #entityUuid
      */
     public final UUID uuid;
+
+    /**
+     * Represents the last known entity of the pet
+     */
+    @Nullable
     public UUID entityUuid;
     public BlockPos position;
     public CompoundTag collar;
     public final UUID ownerUuid;
     public final String OwnerName;
     public BlockPos homePosition;
+    public FollowMode mode;
+    /**
+     * List of modes available for pet
+     */
+    public List<FollowMode> modes;
+
     public ResourceKey<Level> homeDimension;
     /**
      * The time, in milliseconds, when the pet was tamed
      */
     public final long tameTimestamp;
+
+    public boolean isDowned = false;
+
     private CompoundTag entityData;
 
     public CompoundTag getEntityData() {
         return entityData;
     }
 
+    public boolean canEntityFight() {
+        assert this.entityData != null;
+        var entityTypeString = this.entityData.getString("id");
+        ResourceLocation rl = new CompatResourceLocation(entityTypeString).unwrap();
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(rl);
+
+        return !type.is(Tags.PET_ALWAYS_PASSIVE);
+    }
+
+    /**
+     * Attempts to set mode on PetData.
+     *
+     */
+    public FollowMode trySetMode(FollowMode mode, TamableAnimal tame) {
+        if (mode == FollowMode.GUARDIAN && canEntityFight()) {
+            this.mode = mode;
+        } else {
+            this.mode = FollowMode.COMPANION;
+        }
+
+        TameableModeHelper.setTameableMode(this.mode, tame);
+        return this.mode;
+    }
+
+    public FollowMode trySetMode(FollowMode mode, MinecraftServer server) {
+        var pdh = getEntity(server).join();
+        if (pdh.entity() != null) {
+            mode = trySetMode(mode, pdh.entity());
+        }
+        return mode;
+    }
+
+    public List<FollowMode> getModes() {
+        List<FollowMode> modes = new ArrayList<>();
+        modes.add(FollowMode.COMPANION);
+        if (canEntityFight()) {
+            modes.add(FollowMode.GUARDIAN);
+        }
+        return modes;
+    }
+
     public record PetEntityHandle(@Nullable TamableAnimal entity, @Nullable CompoundTag shoulderNbt) {
     }
 
     public PetData(TamableAnimal tame, Entity player, CompoundTag collarItem, long tameDate) {
-        this.uuid = ((TameableEntityDecorator) tame).friendsforlife_getUuid(); // Separate UUID from entity for tracking
-        // purposes
+        this.uuid = ((TameableEntityDecorator) tame).friendsforlife_getUuid(); // Separate UUID from entity for tracking purposes
         this.entityUuid = tame.getUUID();
         this.position = tame.blockPosition();
         this.OwnerName = player.getScoreboardName();
@@ -67,13 +143,14 @@ public class PetData {
         this.entityData = new CompoundTag();
         tame.saveAsPassenger(this.entityData);
         this.entityData.putString("EntityType", String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(tame.getType())));
+        trySetMode(FollowMode.COMPANION, tame);
+        this.modes = getModes();
         this.tameTimestamp = tameDate;
     }
 
     public PetData(UUID friendsforlifeUuid, BlockPos pos, UUID OwnerUuid, String OwnerName, CompoundTag collarItem,
-                   long tameDate, BlockPos homePosition, ResourceKey<Level> homeDimension, CompoundTag entityData) {
+                   long tameDate, BlockPos homePosition, ResourceKey<Level> homeDimension, CompoundTag entityData, boolean isDowned, FollowMode mode) {
         this.uuid = friendsforlifeUuid;
-        this.entityUuid = uuid;
         this.position = pos;
         this.OwnerName = OwnerName;
         this.ownerUuid = OwnerUuid;
@@ -82,22 +159,33 @@ public class PetData {
         this.homeDimension = homeDimension;
         this.homePosition = homePosition;
         this.entityData = entityData;
+        this.mode = mode;
+        this.isDowned = isDowned;
+        this.modes = getModes();
     }
 
+    // The model used in networking
     public record Entry(
             UUID uuid,
             String entityTypeId,
             byte[] nbtBytes,
             String position,
             long homePosLong,
-            String homeDimStr
+            String homeDimStr,
+            boolean isDowned,
+            FollowMode followMode,
+            String followModes
     ) {
 
         // Factory to create Entry from a CompoundTag
         public static Entry of(UUID uuid, String entityTypeId, CompoundTag nbt,
-                               String position, long homePosLong, String homeDimStr) {
+                               String position, long homePosLong,
+                               String homeDimStr,
+                               boolean isDowned,
+                               FollowMode followMode,
+                               String followModes) {
             return new Entry(uuid, entityTypeId, NBTCodec.serialize(nbt),
-                    position, homePosLong, homeDimStr);
+                    position, homePosLong, homeDimStr, isDowned, followMode, followModes);
         }
 
         // Decode the stored bytes back to CompoundTag
@@ -114,10 +202,15 @@ public class PetData {
                 this.position.toShortString(),
                 this.homePosition != null ? this.homePosition.asLong() : 0L,
                 //? if <1.21 {
-                this.homeDimension != null ? this.homeDimension.location().toString() : ""
-                 //?} else {
-                /*this.homeDimension != null ? this.homeDimension.location().toString() : ""
-                *///?}
+                this.homeDimension != null ? this.homeDimension.location().toString() : "",
+                //?} else {
+                /*this.homeDimension != null ? this.homeDimension.location().toString() : "",
+                 *///?}
+                this.isDowned,
+                this.mode,
+                this.modes.stream()
+                        .map(FollowMode::name)
+                        .collect(Collectors.joining(","))
         );
     }
 
@@ -139,10 +232,16 @@ public class PetData {
         tag.putString("homeDim", homeDimension != null ? homeDimension.location().toString() : "");
 
         tag.put("EntityData", entityData);
+
+        tag.putString("FollowMode", mode.name());
+        tag.putBoolean("IsDowned", false); // Remove downed because cooldown scheduled task does not persist
         return tag;
     }
 
     @Nullable
+    /**
+     * Deserialized from save. Not used in networking
+     */
     public static PetData fromNbt(CompoundTag tag) {
         if (tag == null) {
             return null;
@@ -158,15 +257,23 @@ public class PetData {
 
         long tameDate = tag.getLong("tameDate");
 
-        BlockPos homePos = tag.contains("homePos") ? BlockPos.of(tag.getLong("homePos")) : null;
+        BlockPos homePos = tag.contains("homePos") ? net.minecraft.core.BlockPos.of(tag.getLong("homePos")) : null;
         ResourceKey<Level> homeDim = tag.contains("homeDim") && !tag.getString("homeDim").isEmpty()
                 ? ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(tag.getString("homeDim")).unwrap())
                 : null;
 
         CompoundTag entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
+        String followModeStr = tag.getString("FollowMode");
+        FollowMode mode;
+        if (followModeStr.isEmpty()) {
+            mode = FollowMode.COMPANION;
+        } else {
+            mode = FollowMode.valueOf(followModeStr);
+        }
+        boolean isDowned = tag.getBoolean("IsDowned");
 
         return new PetData(friendsforlife_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim,
-                entityData);
+                entityData, isDowned, mode);
     }
 
     public void updateEntityData(Consumer<CompoundTag> editor) {
@@ -184,16 +291,17 @@ public class PetData {
 
     /**
      *
-     * @param server
      * @return entity or nbt if entity is on player's shoulder
-     * @Nullable
      */
     public CompletableFuture<PetEntityHandle> getEntity(MinecraftServer server) {
         if (server == null)
-            return CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(new PetEntityHandle(null, null));
 
         for (ServerLevel world : server.getAllLevels()) {
-            var entity = world.getEntity(this.entityUuid);
+            Entity entity = null;
+            if (this.entityUuid != null) {
+                entity = world.getEntity(this.entityUuid);
+            }
             if (entity != null) {
                 return CompletableFuture.completedFuture(new PetEntityHandle((TamableAnimal) entity, null));
             }
@@ -228,32 +336,41 @@ public class PetData {
         return CompletableFuture.completedFuture(new PetEntityHandle(null, null));
     }
 
+
+    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, Entity entity) {
+        entity.discard();
+        return recreateEntity(server, worldKey, x, y, z, false);
+    }
+
+    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z) {
+        return recreateEntity(server, worldKey, x, y, z, true);
+    }
+
     /**
      * Recreate Entity
      *
-     * @param server
-     * @param worldKey - Dimension to spawn entity
-     * @param x        - Position to spawn entity
-     * @param y
-     * @param z
      * @return The recreated TameableEntity, or null if recreation failed
      */
-    @SuppressWarnings("DataFlowIssue")
     @Nullable
-    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y,
-                                        int z) {
+    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, boolean deleteEntity) {
         if (server == null || entityData == null)
             return null;
 
         String typeId = entityData.getString("id");
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(typeId).unwrap());
+        UUID oldUuid = entityUuid;
 
         // Discard entity if it exists
-        getEntity(server).thenAccept(pdh -> {
-            if (pdh != null && pdh.entity() != null) {
-                pdh.entity().discard();
-            }
-        });
+        if (deleteEntity) {
+            getEntity(server).thenAccept(pdh -> {
+                if (pdh != null && pdh.entity() != null) {
+                    pdh.entity().discard();
+                } else {
+                    PetTracker pt = PetTracker.get(server);
+                    pt.getRecreatedEntityMap().add(oldUuid); // Mark for deletion
+                }
+            });
+        }
 
         Entity entity = type.create(server.getLevel(worldKey));
         if (!(entity instanceof TamableAnimal tame))
@@ -275,7 +392,6 @@ public class PetData {
         }
 
         CompoundTag nbtCopy = entityData.copy();
-        UUID oldUuid = entityUuid;
         entityUuid = UUID.randomUUID();
         nbtCopy.putUUID("UUID", entityUuid);
         nbtCopy.remove("Pos");
@@ -286,19 +402,60 @@ public class PetData {
         nbtCopy.remove("Sitting");
         nbtCopy.remove("DeathTime");
         nbtCopy.remove("ActiveEffects");
+        nbtCopy.remove("HurtTime");
+        nbtCopy.remove("HurtByTimestamp");
+        nbtCopy.remove("SleepingX");
+        nbtCopy.remove("SleepingY");
+        nbtCopy.remove("SleepingZ");
+        nbtCopy.remove("Brain");
+        nbtCopy.remove("Pose");
+
+        if (nbtCopy.getFloat("Health") <= 0) {
+            nbtCopy.putFloat("Health", tame.getMaxHealth());
+        }
+
 
         tame.load(nbtCopy);
         entityData = nbtCopy;
 
-        //? if >=1.21
-        /*tame.setPos(x, y, z);*/
+        tame.setPos(x, y, z);
 
-        server.getLevel(worldKey).addFreshEntity(tame);
+        Objects.requireNonNull(server.getLevel(worldKey)).addFreshEntity(tame);
 
         tame.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
-        PetTracker pt = PetTracker.get(server);
-        pt.getRecreatedEntityMap().add(oldUuid); // Mark for deletion
         return tame;
+    }
+
+    /**
+     *
+     * @param server
+     */
+    public void setDowned(MinecraftServer server) {
+        this.isDowned = true;
+        Net.CHANNEL.serverHandle(server).send(new PetDownedUpdatePacket(this.uuid, this.isDowned));
+        var entity = getEntity(server).join().entity();
+        if (entity != null) {
+            entity.setPose(Pose.SITTING);
+        }
+        TaskScheduler.schedule(() -> {
+            this.isDowned = false;
+            var newEntity = getEntity(server).join().entity();
+            if (newEntity != null) {
+                ((TameableEntityDecorator) newEntity).friendsforlife_setDowned(false);
+            }
+            Net.CHANNEL.serverHandle(server).send(new PetDownedUpdatePacket(this.uuid, this.isDowned));
+        }, CompatConfig.petRespawnTimer() * 20);
+    }
+
+    public void onRemoved(MinecraftServer server) {
+        OcarinaRegistry.get(server).unregisterAllForPet(this.uuid, server);
+        var peh = getEntity(server).join();
+        if (peh.entity() != null) {
+            TameableWanderHelper.stopWandering(peh.entity());
+            peh.entity().setInvulnerable(false);
+        } else {
+            Init.LOGGER.warn("Unable to find entity for removed pet");
+        }
     }
 
     private boolean entityDataMatchesShoulder(CompoundTag shoulderNbt, CompoundTag savedEntityData) {
@@ -327,47 +484,6 @@ public class PetData {
         }
 
         return !shoulderHasName && !savedHasName;
-    }
-
-    public void onRemoved(MinecraftServer server) {
-        OcarinaRegistry.get(server).unregisterAllForPet(this.uuid, server);
-        var peh = getEntity(server).join();
-        if (peh.entity() != null) {
-            TameableWanderHelper.stopWandering(peh.entity());
-        } else {
-            Init.LOGGER.warn("Unable to find entity for removed pet");
-        }
-
-    }
-
-
-    /**
-     * Serializer helper method
-     *
-     * @param out
-     * @param entity
-     * @param nbt
-     */
-    private static void writeEntityData(FriendlyByteBuf out, Entity entity, @Nullable CompoundTag nbt) {
-        if (entity != null) {
-            out.writeUtf(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
-            CompoundTag entityNbt = new CompoundTag();
-            entity.save(entityNbt);
-            out.writeNbt(entityNbt);
-
-            String name = entity.hasCustomName()
-                    ? Objects.requireNonNull(entity.getCustomName()).getString()
-                    : entity.getType().getDescription().getString();
-            out.writeUtf(name);
-        } else if (nbt != null) {
-            out.writeUtf(nbt.getString("id"));
-            out.writeNbt(nbt);
-
-            String name = nbt.contains("CustomName")
-                    ? Objects.requireNonNull(CompatComponent.fromJson(nbt.getString("CustomName"))).getString()
-                    : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
-            out.writeUtf(name);
-        }
     }
 
 }

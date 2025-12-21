@@ -4,7 +4,11 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.arcana.friendsforlife.Init;
-import net.arcana.friendsforlife.components.components.Components;
+import net.arcana.friendsforlife.client.homeblock.ClientHomeBlock;
+import net.arcana.friendsforlife.client.util.KeyHelper;
+//? if >= 1.21 {
+/*import net.arcana.friendsforlife.components.Components;
+*///?}
 import net.arcana.friendsforlife.items.CollarItem;
 import net.arcana.friendsforlife.items.RosterItem;
 import net.arcana.friendsforlife.util.CompatItemStack;
@@ -57,18 +61,18 @@ public class HomeBlockRenderer {
                 @SuppressWarnings("DataFlowIssue") long posLong = item.get(Components.HOME_POS);
                 homeBlock = BlockPos.of(posLong);
                 *///?} else {
-                    CompoundTag tag = CompatItemStack.getOrCreateTag(item);
-                    var dim = tag.contains("HomeDim")
-                            ? new CompatResourceLocation(tag.getString("HomeDim")).unwrap()
-                            : null;
+                CompoundTag tag = CompatItemStack.getOrCreateTag(item);
+                var dim = tag.contains("HomeDim")
+                        ? new CompatResourceLocation(tag.getString("HomeDim")).unwrap()
+                        : null;
 
-                    if (!client.level.dimension().location().equals(dim))
-                        return;
+                if (!client.level.dimension().location().equals(dim))
+                    return;
 
-                    homeBlock = (tag.contains("HomePos"))
-                            ? BlockPos.of(tag.getLong("HomePos"))
-                            : null;
-                    //?}
+                homeBlock = (tag.contains("HomePos"))
+                        ? BlockPos.of(tag.getLong("HomePos"))
+                        : null;
+                //?}
             }
 
             if (homeBlock == null)

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "   ",
+    "TTT",
+    "   "
+  ],
+  "key": {
+    "T": { "item": "minecraft:blue_terracotta" }
+  },
+  "result": { "count": 1, "id": "friendsforlife:blue_ocarina" }
+}

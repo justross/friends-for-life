@@ -45,7 +45,7 @@ public class HomeBlock extends SavedData {
                 ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(dimStr).unwrap());
                 state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
             } catch (Exception e) {
-                Init.LOGGER.error(Init.MOD_ID, "Skipped invalid home entry: " + key);
+                Init.LOGGER.error("Skipped invalid home entry: {}", key);
             }
         }
         return state;
@@ -73,7 +73,7 @@ public class HomeBlock extends SavedData {
 
         Net.CHANNEL.serverHandle(player).send(new HomeUpdatePacket(pos, dim.location()));
 
-        setDirty(); // tells Minecraft to save this state
+        setDirty();
     }
 
     @Nullable

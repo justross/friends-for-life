@@ -24,7 +24,7 @@ public abstract class SavedData extends net.minecraft.world.level.saveddata.Save
     }
     *///?} else {
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public @NotNull CompoundTag save(CompoundTag tag) {
         write(tag);
         return tag;
     }

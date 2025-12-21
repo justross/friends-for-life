@@ -3,13 +3,11 @@ package net.arcana.friendsforlife.mixin;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,20 +15,64 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Mixin(TamableAnimal.class)
 public abstract class TameableEntityMixin implements TameableEntityDecorator {
+    @Unique
+    private final String FOLLOW_MODE = "FriendsForLifeFollowMode";
+    @Unique
+    private final String FORCE_WANDER = "FriendsForLifeForceWander";
+    /**
+     * The uuid for the associated PetData
+     *
+     * @see PetData
+     */
+    @Unique
+    private final String PET_UUID = "FriendsForLifeEntityUUID";
+
+    @Unique
+    private final String IS_DOWNED = "FriendsForLifeIsDowned";
+
+    @Unique
+    private boolean friendsforlife_downed = false;
+
+    @Unique
+    @Override
+    public boolean friendsforlife_getDowned() {
+        return friendsforlife_downed;
+    }
+
+    @Unique
+    @Override
+    public void friendsforlife_setDowned(boolean value) {
+        friendsforlife_downed = value;
+    }
+
+    @Unique
     private UUID friendsforlife_uuid = UUID.randomUUID();
 
-    @Override
+    public UUID friendsforlife_getUuid() {
+        return this.friendsforlife_uuid;
+    }
+
     public void friendsforlife_setUuid(UUID uuid) {
         this.friendsforlife_uuid = uuid;
     }
 
+    @Unique
+    @Nullable
+    private PetData.FollowMode friendsforlife_mode;
+
     @Override
-    public UUID friendsforlife_getUuid() {
-        return this.friendsforlife_uuid;
+    public PetData.FollowMode friendsforlife_getMode() {
+        return friendsforlife_mode;
+    }
+
+    @Override
+    public void friendsforlife_setMode(PetData.FollowMode mode) {
+        this.friendsforlife_mode = mode;
     }
 
     @Unique
@@ -44,61 +86,51 @@ public abstract class TameableEntityMixin implements TameableEntityDecorator {
         this.friendsforlife_forceWander = value;
     }
 
-    // disable other mobs being able to target pets
     @Inject(method = "canAttack", at = @At("HEAD"), cancellable = true)
-    private void friendsforlife$disableCanBeAttackedIfPet(LivingEntity target, CallbackInfoReturnable<Boolean> cir) {
+    private void friendsforlife$disableCanBeAttackedIfCompanion(LivingEntity target, CallbackInfoReturnable<Boolean> cir) {
         MinecraftServer server = target.level().getServer();
         if (server == null)
             return;
-        PetData trackedPetData = PetTracker.get(server).get(((TamableAnimal) (Object) this).getUUID());
-        if (trackedPetData != null) {
-            // Only prevent targeting of players
-            if (target instanceof Player) {
+        TamableAnimal self = ((TamableAnimal) (Object) this);
+        PetData trackedPetData = PetTracker.get(server).getByEntityId(self.getUUID());
+        if (trackedPetData != null && friendsforlife_getMode() != null && Objects.equals(friendsforlife_getMode(), PetData.FollowMode.COMPANION)) {
                 cir.setReturnValue(false);
-            }
         }
     }
 
-    // Remove wandering behavior when setSetting is called
+    // Remove wandering behavior when setSetting is called.
+    // Method is called anytime the pet should not sit, not just when players set their pet to sit
     @Inject(method = "setOrderedToSit", at = @At("HEAD"))
     private void onSetSitting(boolean sitting, CallbackInfo ci) {
         this.friendsforlife_forceWander = false;
-        TamableAnimal self = (TamableAnimal) (Object) this;
-
-        if (!self.level().isClientSide()) {
-
-            MinecraftServer server = self.level().getServer();
-            if (server == null)
-                return;
-
-            PetData data = PetTracker.get(server).get(this.friendsforlife_getUuid());
-            if (data == null)
-                return;
-            ((ServerLevel) self.level()).sendParticles(
-                    ParticleTypes.HEART,
-                    self.getX(),
-                    self.getY(1),
-                    self.getZ(),
-                    1,
-                    0.3, 0.3, 0.3,
-                    0.02);
-        }
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
-    private void writeWanderStateToNbt(CompoundTag nbt, CallbackInfo ci) {
-        nbt.putBoolean("FriendsForLifeForceWander", this.friendsforlife_isForceWander());
-        nbt.putUUID("FriendsForLifeEntityUUID", this.friendsforlife_getUuid());
+    private void writeStateToNbt(CompoundTag nbt, CallbackInfo ci) {
+        nbt.putBoolean(FORCE_WANDER, this.friendsforlife_isForceWander());
+        nbt.putUUID(PET_UUID, this.friendsforlife_getUuid());
+        if (this.friendsforlife_mode != null) {
+            nbt.putInt(FOLLOW_MODE, this.friendsforlife_mode.id);
+        }
+        nbt.putBoolean(IS_DOWNED, this.friendsforlife_getDowned());
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
-    private void readWanderStateFromNbt(CompoundTag nbt, CallbackInfo ci) {
-        if (nbt.contains("FriendsForLifeForceWander")) {
-            this.friendsforlife_setForceWander(nbt.getBoolean("FriendsForLifeForceWander"));
+    private void readStateFromNbt(CompoundTag nbt, CallbackInfo ci) {
+        if (nbt.contains(FORCE_WANDER)) {
+            this.friendsforlife_setForceWander(nbt.getBoolean(FORCE_WANDER));
         }
-        if (nbt.contains("FriendsForLifeEntityUUID")) {
-            UUID entityUuid = nbt.getUUID("FriendsForLifeEntityUUID");
+        if (nbt.contains(PET_UUID)) {
+            UUID entityUuid = nbt.getUUID(PET_UUID);
             this.friendsforlife_setUuid(entityUuid);
+        }
+        if (nbt.contains(FOLLOW_MODE)) {
+            PetData.FollowMode mode = PetData.FollowMode.fromId(nbt.getInt(FOLLOW_MODE));
+            this.friendsforlife_setMode(mode);
+        }
+        if (nbt.contains(IS_DOWNED)) {
+            boolean isDowned = nbt.getBoolean(IS_DOWNED);
+            this.friendsforlife_setDowned(isDowned);
         }
     }
 

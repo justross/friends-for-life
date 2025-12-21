@@ -1,11 +1,11 @@
 <owo-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/wisp-forest/owo-lib/1.20/owo-ui.xsd">
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/wisp-forest/owo-lib/1.20/owo-ui.xsd">
     <components>
         <stack-layout id="roster-screen">
             <children>
                 <texture texture="friendsforlife:textures/gui/book_spread.png"
-                    texture-width="292" texture-height="180"
-                    region-width="292" region-height="180">
+                         texture-width="292" texture-height="180"
+                         region-width="292" region-height="180">
                 </texture>
                 <flow-layout direction="horizontal">
                     <children>
@@ -16,10 +16,10 @@
                                 <flow-layout direction="horizontal">
                                     <children>
                                         <texture
-                                            id="default-home-icon"
-                                            texture="friendsforlife:textures/gui/default_home_icon.png"
-                                            texture-width="10" texture-height="10"
-                                            region-width="10" region-height="10"
+                                                id="default-home-icon"
+                                                texture="friendsforlife:textures/gui/default_home_icon.png"
+                                                texture-width="10" texture-height="10"
+                                                region-width="10" region-height="10"
                                         >
                                             <tooltip-text>Default home location</tooltip-text>
                                         </texture>
@@ -86,8 +86,8 @@
                                 <button id="close-button">
                                     <renderer>
                                         <texture u="0" v="0"
-                                            texture="friendsforlife:textures/gui/close_button.png"
-                                            texture-width="11" texture-height="22" />
+                                                 texture="friendsforlife:textures/gui/close_button.png"
+                                                 texture-width="11" texture-height="22"/>
                                     </renderer>
                                     <sizing>
                                         <horizontal method="fixed">11</horizontal>
@@ -134,6 +134,42 @@
                                                 <left>6</left>
                                             </margins>
                                         </stack-layout>
+                                        <stack-layout id="mode-button-container">
+                                            <children>
+                                                <!-- Companion -->
+                                                <button id="follow-mode-button-companion">
+                                                    <sizing>
+                                                        <horizontal method="fixed">9</horizontal>
+                                                        <vertical method="fixed">9</vertical>
+                                                    </sizing>
+                                                    <renderer>
+                                                        <texture u="0" v="0"
+                                                                 texture="friendsforlife:textures/gui/mode_buttons.png"
+                                                                 texture-width="18" texture-height="27"/>
+                                                    </renderer>
+                                                    <margins>
+                                                        <bottom>2</bottom>
+                                                    </margins>
+                                                </button>
+                                                <!-- Guardian -->
+                                                <button id="follow-mode-button-guardian">
+                                                    <sizing>
+                                                        <horizontal method="fixed">9</horizontal>
+                                                        <vertical method="fixed">9</vertical>
+                                                    </sizing>
+                                                    <renderer>
+                                                        <texture u="9" v="0"
+                                                                 texture="friendsforlife:textures/gui/mode_buttons.png"
+                                                                 texture-width="18" texture-height="27"/>
+                                                    </renderer>
+                                                    <margins>
+                                                        <bottom>3</bottom>
+                                                    </margins>
+                                                </button>
+                                            </children>
+
+                                            <positioning type="relative">47,22</positioning>
+                                        </stack-layout>
 
                                         <flow-layout direction="vertical" id="command-buttons">
                                             <children>
@@ -145,8 +181,8 @@
                                                     </sizing>
                                                     <renderer>
                                                         <texture u="0" v="0"
-                                                            texture="friendsforlife:textures/gui/command_buttons.png"
-                                                            texture-width="84" texture-height="63" />
+                                                                 texture="friendsforlife:textures/gui/command_buttons.png"
+                                                                 texture-width="84" texture-height="63"/>
                                                     </renderer>
                                                     <margins>
                                                         <bottom>2</bottom>
@@ -161,8 +197,8 @@
                                                     </sizing>
                                                     <renderer>
                                                         <texture u="42" v="0"
-                                                            texture="friendsforlife:textures/gui/command_buttons.png"
-                                                            texture-width="84" texture-height="63" />
+                                                                 texture="friendsforlife:textures/gui/command_buttons.png"
+                                                                 texture-width="84" texture-height="63"/>
                                                     </renderer>
                                                 </button>
 
@@ -181,10 +217,10 @@
                                 <flow-layout direction="horizontal">
                                     <children>
                                         <texture
-                                            id="pet-position-icon"
-                                            texture="friendsforlife:textures/gui/pos_icon.png"
-                                            texture-width="8" texture-height="10"
-                                            region-width="8" region-height="10"
+                                                id="pet-position-icon"
+                                                texture="friendsforlife:textures/gui/pos_icon.png"
+                                                texture-width="8" texture-height="10"
+                                                region-width="8" region-height="10"
                                         >
                                             <tooltip-text>Current position</tooltip-text>
                                         </texture>
@@ -208,10 +244,10 @@
                                 <flow-layout direction="horizontal">
                                     <children>
                                         <texture
-                                            id="home-icon"
-                                            texture="friendsforlife:textures/gui/home_icon.png"
-                                            texture-width="10" texture-height="10"
-                                            region-width="10" region-height="10"
+                                                id="home-icon"
+                                                texture="friendsforlife:textures/gui/home_icon.png"
+                                                texture-width="10" texture-height="10"
+                                                region-width="10" region-height="10"
                                         >
                                             <tooltip-text>Home location</tooltip-text>
                                         </texture>

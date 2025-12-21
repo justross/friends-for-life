@@ -1,6 +1,6 @@
 package net.arcana.friendsforlife.petdatabase;
 
-import net.arcana.friendsforlife.client.ClientPetData;
+import net.arcana.friendsforlife.client.petdatabase.ClientPetData;
 
 import java.util.List;
 import java.util.UUID;

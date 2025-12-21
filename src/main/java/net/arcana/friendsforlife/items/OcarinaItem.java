@@ -4,10 +4,10 @@ import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.Sounds;
 import net.arcana.friendsforlife.TameableWanderHelper;
 import net.arcana.friendsforlife.TaskScheduler;
-import net.arcana.friendsforlife.client.ClientOcarinaRegistry;
-import net.arcana.friendsforlife.client.ClientPetData;
-import net.arcana.friendsforlife.client.ClientPetList;
-import net.arcana.friendsforlife.components.components.Components;
+import net.arcana.friendsforlife.client.petdatabase.ClientOcarinaRegistry;
+import net.arcana.friendsforlife.client.petdatabase.ClientPetData;
+import net.arcana.friendsforlife.client.petdatabase.ClientPetList;
+import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
 import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
@@ -48,7 +48,9 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+            /*? if fabric {*/
+    @Environment(EnvType.CLIENT)
+            /*?}*/
     public boolean isFoil(ItemStack stack) {
         //? if >=1.21 {
         /*String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
@@ -104,14 +106,18 @@ public class OcarinaItem extends Item {
                     if (petData != null) {
                         BlockPos pos = RaycastHelper.getSafeBlock(player);
                         TaskScheduler.schedule(() -> {
-                            var tame = petData.recreateEntity(
-                                    world.getServer(),
-                                    world.dimension(),
-                                    pos.getX(),
-                                    pos.getY(),
-                                    pos.getZ());
-                            if (tame != null) {
-                                TameableWanderHelper.stopWandering(tame);
+                            if (petData.isDowned) {
+                                player.displayClientMessage(Component.translatable("message.friendsforlife.pet_missing", getPetName(stack)), true);
+                            } else {
+                                var tame = petData.recreateEntity(
+                                        world.getServer(),
+                                        world.dimension(),
+                                        pos.getX(),
+                                        pos.getY(),
+                                        pos.getZ());
+                                if (tame != null) {
+                                    TameableWanderHelper.stopWandering(tame);
+                                }
                             }
                         }, 30);
                     }
@@ -227,7 +233,9 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
+            /*? if fabric {*/
+    @Environment(EnvType.CLIENT)
+            /*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag context) {
         String name = getPetName(stack);
         if (!name.isEmpty()) {

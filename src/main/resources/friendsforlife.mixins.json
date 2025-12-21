@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "TameableEntityMixin",
+    "LivingEntityMixin",
     "MobEntityMixin",
     "PlayerEntityMixin",
     "FollowOwnerGoalMixin",

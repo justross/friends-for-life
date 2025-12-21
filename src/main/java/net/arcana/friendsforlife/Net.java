@@ -110,6 +110,16 @@ public class Net {
             }
         });
 
+        // Update PetData mode
+        Net.CHANNEL.registerServerbound(SetPetModePacket.class, (packet, handler) -> {
+            PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().getServer())).get(packet.uuid());
+            if (pd != null) {
+                var mode = PetData.FollowMode.fromId(packet.mode());
+                mode = pd.trySetMode(mode, handler.player().getServer());
+                Net.CHANNEL.serverHandle(handler.player().getServer()).send(new PetModeUpdatePacket(packet.uuid(), mode.id));
+            }
+        });
+
         // Set individual pet home block
         Net.CHANNEL.registerServerbound(HomeSetRequestPacket.class, (packet, handler) -> {
             PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().getServer())).get(packet.uuid());
@@ -134,7 +144,9 @@ public class Net {
         });
 
         Net.CHANNEL.registerClientboundDeferred(PetListPacket.class);
-        Net.CHANNEL.registerClientboundDeferred(PetUpdatePacket.class);
+        Net.CHANNEL.registerClientboundDeferred(PetTrackerUpdatePacket.class);
+        Net.CHANNEL.registerClientboundDeferred(PetModeUpdatePacket.class);
+        Net.CHANNEL.registerClientboundDeferred(PetDownedUpdatePacket.class);
         Net.CHANNEL.registerClientboundDeferred(HomeUpdatePacket.class);
         Net.CHANNEL.registerClientboundDeferred(OcarinaListPacket.class);
         Net.CHANNEL.registerClientboundDeferred(OcarinaUpdatePacket.class);

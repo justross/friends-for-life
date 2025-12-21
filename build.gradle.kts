@@ -1,5 +1,3 @@
-import org.gradle.internal.declarativedsl.parsing.main
-
 plugins {
 //    id("fabric-loom") version "1.3.+"
     id("dev.isxander.modstitch.base") version "0.5.12"
@@ -35,7 +33,7 @@ modstitch {
     metadata {
         modId = "friendsforlife"
         modName = "Friends For Life"
-        modVersion = "1.1.0"
+        modVersion = "1.2.0"
         modGroup = "net.arcana"
         modAuthor = "conbo, jjorge"
         modDescription = "Take your pets on your next adventure with this QoL mod!"
@@ -51,7 +49,7 @@ modstitch {
             put(
                 "pack_format", when (property("deps.minecraft")) {
                     "1.20.1" -> 15
-                    "1.21.1" -> 46
+                    "1.21.1" -> 34
                     "1.21.10" -> 46
                     else -> throw IllegalArgumentException("Please store the resource pack version for ${property("deps.minecraft")} in build.gradle.kts! https://minecraft.wiki/w/Pack_format")
                 }.toString()
@@ -138,11 +136,13 @@ dependencies {
 
         modstitchModImplementation("io.wispforest:owo-lib:${property("deps.owo_version")}")
         modstitchModImplementation("com.terraformersmc:modmenu:${property("deps.modmenu_version")}")
+        annotationProcessor("io.wispforest:owo-lib:${property("deps.owo_version")}")
     }
 
     modstitch.moddevgradle {
         modstitchModImplementation("io.wispforest:owo-lib-neoforge:${property("deps.owo_version")}")
         modstitchModImplementation("org.sinytra.forgified-fabric-api:fabric-api-base:0.4.42+e0539096d1")
+        // modstitchModImplementation("org.sinytra.forgified-fabric-api:fabric-api-base:0.4.42+d1308dedd1")
     }
 
     // Anything else in the dependencies block will be used for all platforms.

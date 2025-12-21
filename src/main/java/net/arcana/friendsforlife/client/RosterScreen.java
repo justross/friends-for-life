@@ -13,9 +13,15 @@ import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.Insets;
 import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.Net;
-import net.arcana.friendsforlife.homeblock.HomeBlockUpdateEvents;
+import net.arcana.friendsforlife.client.homeblock.ClientHomeBlock;
+import net.arcana.friendsforlife.client.homeblock.HomeBlockUpdateEvents;
+import net.arcana.friendsforlife.client.petdatabase.ClientPetData;
+import net.arcana.friendsforlife.client.petdatabase.ClientPetList;
+import net.arcana.friendsforlife.client.petdatabase.PetDataUpdateEvent;
 import net.arcana.friendsforlife.packets.PetListRequestPacket;
 import net.arcana.friendsforlife.packets.PetTeleportRequestPacket;
+import net.arcana.friendsforlife.packets.SetPetModePacket;
+import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -44,12 +50,84 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     private @Nullable LabelComponent homeLabel; // Component for the pet's home coordinates
     private @Nullable LabelComponent defaultHomeLabel; // Component for the default home coordinates
     private HomeBlockUpdateEvents.IListener homeUpdateListener;
+    private PetDataUpdateEvent.IListener petDataUpdateListener;
 
 
     private List<ClientPetData> pets;
 
     public RosterScreen() {
         super(StackLayout.class, DataSource.asset(new CompatResourceLocation("friendsforlife", "roster").unwrap()));
+    }
+
+    public void renderFollowModeButton() {
+        var companionButton = ((ButtonComponent) this.uiAdapter.rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "follow-mode-button-companion"));
+        var guardianButton = ((ButtonComponent) this.uiAdapter.rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "follow-mode-button-guardian"));
+        assert companionButton != null;
+        assert guardianButton != null;
+
+        guardianButton.visible = false;
+        guardianButton.active = false;
+        companionButton.visible = false;
+        companionButton.active = false;
+
+        // Hide mode button if there is only 1 mode available for the pet
+        boolean shouldRender = currentPet != null && currentPet.modes.size() >= 2;
+
+        if (shouldRender) {
+            PetData.FollowMode mode = currentPet.mode;
+            companionButton.visible = mode.equals(PetData.FollowMode.COMPANION);
+            companionButton.active = mode.equals(PetData.FollowMode.COMPANION);
+
+            guardianButton.visible = mode.equals(PetData.FollowMode.GUARDIAN);
+            guardianButton.active = mode.equals(PetData.FollowMode.GUARDIAN);
+            var currentButton = mode.equals(PetData.FollowMode.COMPANION) ? companionButton : guardianButton;
+            currentButton.onPress(button -> {
+                var currentMode = currentPet.mode;
+                if (currentMode.equals(PetData.FollowMode.COMPANION)) {
+                    currentMode = PetData.FollowMode.GUARDIAN;
+                } else {
+                    currentMode = PetData.FollowMode.COMPANION;
+                }
+                companionButton.visible = currentMode.equals(PetData.FollowMode.COMPANION);
+                companionButton.active = currentMode.equals(PetData.FollowMode.COMPANION);
+
+                guardianButton.visible = currentMode.equals(PetData.FollowMode.GUARDIAN);
+                guardianButton.active = currentMode.equals(PetData.FollowMode.GUARDIAN);
+                currentPet.mode = currentMode;
+
+                Net.CHANNEL.clientHandle().send(new SetPetModePacket(currentPet.uuid, currentMode.id));
+                renderFollowModeButton();
+
+            });
+        }
+    }
+
+    public void renderSummonButton() {
+        // Summon button
+        this.summonButton = (ButtonComponent) this.uiAdapter.rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "summon-button");
+        assert summonButton != null;
+
+        summonButton.onPress(button -> {
+            if (currentPet == null) {
+                Init.LOGGER.error("Unable to find current pet.");
+                return;
+            }
+
+            // Get player position
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null)
+                return;
+            BlockPos pos = mc.player.blockPosition();
+            ResourceLocation dim = mc.player.level().dimension().location();
+
+            var packet = new PetTeleportRequestPacket(currentPet.uuid, pos, dim, false);
+            Net.CHANNEL.clientHandle().send(packet);
+        });
+
+        summonButton.visible = currentPet != null;
+        if (currentPet != null) {
+            summonButton.active = !currentPet.isDowned;
+        }
     }
 
     // @Override
@@ -68,6 +146,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         this.defaultHomeLabel = this.uiAdapter.rootComponent.childById(LabelComponent.class, "default-home-label");
         assert defaultHomeLabel != null;
 
+        renderFollowModeButton();
+
         // Listen for default home block update
         homeUpdateListener = (uuid, newHomePos, newDim) -> {
             LocalPlayer player = Minecraft.getInstance().player;
@@ -81,6 +161,15 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         };
 
         HomeBlockUpdateEvents.subscribe(homeUpdateListener);
+
+        // Listen for pet updates and render if needed
+        petDataUpdateListener = (clientPetData) -> {
+            if (clientPetData.uuid.equals(currentPet.uuid)) {
+                updateCurrentPet(clientPetData);
+            }
+        };
+
+        PetDataUpdateEvent.subscribe(petDataUpdateListener);
 
         // Get home position
         BlockPos homePos;
@@ -113,28 +202,7 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
     @Override
     protected void build(StackLayout rootComponent) {
 
-        // Summon button
-        this.summonButton = (ButtonComponent) rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "summon-button");
-        assert summonButton != null;
-
-        summonButton.onPress(button -> {
-            if (currentPet == null) {
-                Init.LOGGER.error("Unable to find current pet.");
-                return;
-            }
-
-            // Get player position
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null)
-                return;
-            BlockPos pos = mc.player.blockPosition();
-            ResourceLocation dim = mc.player.level().dimension().location();
-
-            var packet = new PetTeleportRequestPacket(currentPet.uuid, pos, dim, false);
-            Net.CHANNEL.clientHandle().send(packet);
-        });
-
-        summonButton.visible = currentPet != null;
+        renderSummonButton();
 
         // Home button
         this.homeButton = (ButtonComponent) this.uiAdapter.rootComponent.childById(io.wispforest.owo.ui.core.Component.class, "home-button");
@@ -194,6 +262,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             });
         }
 
+        renderFollowModeButton();
+
     }
 
     // Update the current pet
@@ -216,9 +286,11 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         // Update command buttons
         if (this.summonButton != null) {
             this.summonButton.visible = true;
+            this.summonButton.active = !this.currentPet.isDowned;
         }
         if (this.homeButton != null) {
             this.homeButton.visible = true;
+            this.homeButton.active = !this.currentPet.isDowned;
         }
 
         // Update entity box
@@ -264,6 +336,8 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
                 Init.LOGGER.warn("Expected home position to be defined.");
             }
         }
+
+        renderFollowModeButton();
     }
 
     public void setPets(List<ClientPetData> pets) {

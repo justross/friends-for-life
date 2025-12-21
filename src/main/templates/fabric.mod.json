@@ -11,6 +11,9 @@
     ],
     "client": [
       "net.arcana.friendsforlife.loaders.fabric.FabricClientEntrypoint"
+    ],
+    "fabric-datagen": [
+      "net.arcana.friendsforlife.loaders.fabric.DataGenerator"
     ]
   }
 }

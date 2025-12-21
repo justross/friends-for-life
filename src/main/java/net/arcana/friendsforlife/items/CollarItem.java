@@ -14,7 +14,7 @@ import net.fabricmc.api.Environment;
 //?}
 
 //? if >= 1.21
-/*import net.arcana.friendsforlife.components.components.Components;*/
+/*import net.arcana.friendsforlife.components.Components;*/
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
@@ -115,17 +115,12 @@ public class CollarItem extends Item {
     }
 
     public InteractionResult applyCollar(ItemStack item, ServerPlayer user, TamableAnimal tame) {
-        // maybe a config setting here or something
-        tame.setInvulnerable(true);
-
         var tracker = PetTracker.get(user.getServer());
         // tell server to track the pet
         PetData pd = tracker.addPet(tame, user, item, Instant.now().toEpochMilli());
         if (pd == null) {
             return InteractionResult.SUCCESS;
         }
-        if (!user.isCreative())
-            item.shrink(1);
 
         //? if >=1.21 {
         /*var posLong = item.get(Components.HOME_POS);
@@ -156,6 +151,9 @@ public class CollarItem extends Item {
                 SoundEvents.ARMOR_EQUIP_LEATHER,
                 SoundSource.PLAYERS,
                 1.0F, 1.0F);
+
+        if (!user.isCreative())
+            item.shrink(1);
 
         return InteractionResult.SUCCESS;
     }

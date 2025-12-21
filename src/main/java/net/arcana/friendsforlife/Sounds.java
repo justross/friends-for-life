@@ -19,8 +19,6 @@ public class Sounds {
     }
 
     public static void registerAll(BiConsumer<ResourceLocation, SoundEvent> registrar) {
-        Init.LOGGER.info("Registering " + Init.MOD_ID + " sounds");
-
         OCARINA = createSound("ocarina");
         OCARINA_TWO = createSound("ocarinatwo");
 

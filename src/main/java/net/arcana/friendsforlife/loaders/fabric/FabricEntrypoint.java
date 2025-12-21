@@ -2,14 +2,14 @@
 package net.arcana.friendsforlife.loaders.fabric;
 
 import net.arcana.friendsforlife.*;
-import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
-import net.arcana.friendsforlife.components.components.Components;
-import net.arcana.friendsforlife.items.CollarItem;
+import net.arcana.friendsforlife.FriendsForLifeConfig;
+import net.arcana.friendsforlife.client.EventHandler;
+import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.items.Items;
-import net.arcana.friendsforlife.items.OcarinaItem;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.petdatabase.PetWatcher;
+import net.arcana.friendsforlife.util.CompatConfig;
 import net.arcana.friendsforlife.util.ServerContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -20,20 +20,14 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
-import java.util.UUID;
-
 public class FabricEntrypoint implements ModInitializer {
     public static final String MOD_ID = "friendsforlife";
-    // public static final FriendsForLifeConfig CONFIG = FriendsForLifeConfig.createAndLoad();
+     public static final FriendsForLifeConfig CONFIG = FriendsForLifeConfig.createAndLoad();
 
     // This logger is used to write text to the console and the log file.
     // It is considered best practice to use your mod id as the logger's customName.
@@ -60,59 +54,29 @@ public class FabricEntrypoint implements ModInitializer {
         TaskScheduler.register();
         //? if >=1.21 {
         /*Components.registerAll((id, dataComponentType) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, dataComponentType));
-        *///?}
+         *///?}
 
-        // cause dogs are annoying and return from a interaction early, we have to
-        // overwrite nbt methods
+        final class FabricConfigBacking implements CompatConfig.Impl {
+
+            @Override
+            public int petRespawnTimer() {
+                return CONFIG.petRespawnTimer();
+            }
+        }
+
+        CompatConfig.setBacking(new FabricConfigBacking());
+
         UseEntityCallback.EVENT.register(((playerEntity, world, hand, entity, entityHitResult) -> {
             if (entityHitResult != null) {
                 return InteractionResult.PASS;
             }
-            if (world.isClientSide) return InteractionResult.PASS;
-
-            if (entity instanceof TamableAnimal tame) {
-                if (!tame.isOwnedBy(playerEntity)) return InteractionResult.PASS;
-
-                ItemStack stack = playerEntity.getItemInHand(hand);
-                PetTracker tracker = PetTracker.get(playerEntity.getServer());
-                PetData pd = tracker.get(((TameableEntityDecorator) tame).friendsforlife_getUuid());
-                if (stack.getItem() instanceof CollarItem collarItem && pd == null) {
-                    return collarItem.applyCollar(stack, (ServerPlayer) playerEntity, tame);
-                } else if (stack.isEmpty() && playerEntity.isShiftKeyDown()) {
-                    ItemStack collar = CollarItem.getCollar(playerEntity, tame, pd);
-                    if (collar == null) return InteractionResult.PASS;
-                    if (pd == null) {
-                        Init.LOGGER.error(MOD_ID, "Unable to find PetData for tracked entity " + tame.getStringUUID());
-                        return InteractionResult.PASS;
-                    }
-                    CollarItem.removePet(tame, pd);
-
-                    playerEntity.addItem(collar);
-                    return InteractionResult.CONSUME;
-                }
-
-                if (stack.getItem() instanceof OcarinaItem ocarina && pd != null) {
-                    return ocarina.useOcarinaFromPet(world, playerEntity, stack, pd, tame);
-                }
-
-            }
-            return InteractionResult.PASS;
+            return EventHandler.handleEntityUse(playerEntity, world, hand, entity);
         }));
 
         // Helper to provide server context for classes
         ServerLifecycleEvents.SERVER_STARTED.register(ServerContext::setServer);
 
-        // Remove entities that have been duplicated and marked as such
-        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-            if (entity instanceof TamableAnimal) {
-                PetTracker tracker = PetTracker.get(world.getServer());
-                Set<UUID> recreatedSet = tracker.getRecreatedEntityMap();
-                if (recreatedSet.remove(entity.getUUID())) {
-                    tracker.setDirty();
-                    world.getServer().execute(() -> entity.discard()); // run next tick
-                }
-            }
-        });
+        ServerEntityEvents.ENTITY_LOAD.register(EventHandler::handleEntityLoad);
 
         // Snapshot entity to PetData NBT when unloaded
         ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
@@ -120,7 +84,7 @@ public class FabricEntrypoint implements ModInitializer {
                 PetTracker tracker = PetTracker.get(world.getServer());
                 PetData pd = tracker.getByEntityId(tame.getUUID());
                 if (pd != null) {
-                    pd.updateEntityData(nbt -> tame.saveWithoutId(nbt));
+                    pd.updateEntityData(tame::saveWithoutId);
                 }
             }
         });
@@ -135,8 +99,8 @@ public class FabricEntrypoint implements ModInitializer {
             dispatcher.register(
                     // /listpets → lists your own pets
                     net.minecraft.commands.Commands.literal("listpets").executes(Commands::listPetsSelf)
-                    // /listpets <player> → lists another player's pets
-                    .then(net.minecraft.commands.Commands.argument("player", EntityArgument.player()).executes(Commands::listPetsOther)));
+                            // /listpets <player> → lists another player's pets
+                            .then(net.minecraft.commands.Commands.argument("player", EntityArgument.player()).executes(Commands::listPetsOther)));
         });
     }
 }

@@ -30,13 +30,13 @@ public class PetTracker extends SavedData {
     @Nullable
     public PetData addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
         Init.LOGGER.info("adding new entity to be tracked: " + tame.getName());
-        if (tracked.values().stream().noneMatch(pet -> pet.entityUuid.equals(tame.getUUID()))) {
+        if (tracked.values().stream().noneMatch(pet -> Objects.equals(pet.entityUuid, tame.getUUID()))) {
             CompoundTag collar = new CompoundTag();
             //? if >=1.21 {
             /*collar = CompatItemStack.save(item, collar, player.level());
             *///?} else {
             CompatItemStack.save(item, collar, player.level());
-            //?}
+             //?}
             PetData pd = new PetData(tame, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
             Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
@@ -65,7 +65,8 @@ public class PetTracker extends SavedData {
     }
 
     /**
-     * Map of entities marked for deletion
+     * Map of entities marked for deletion.
+     * UUID is entity uuid.
      */
     public Set<UUID> getRecreatedEntityMap() {
         return recreated;
@@ -82,7 +83,7 @@ public class PetTracker extends SavedData {
     @Nullable
     public PetData getByEntityId(UUID entityUuid) {
         return tracked.values().stream()
-                .filter(pet -> pet.entityUuid.equals(entityUuid))
+                .filter(pet -> pet.entityUuid != null && pet.entityUuid.equals(entityUuid))
                 .findFirst()
                 .orElse(null);
     }
@@ -135,6 +136,10 @@ public class PetTracker extends SavedData {
 
         ListTag recreatedList = new ListTag();
         for (UUID uuid : recreated) {
+            if (uuid == null) {
+                Init.LOGGER.warn("Null uuid found in PetTracker#write");
+                continue;
+            }
             CompoundTag tag = new CompoundTag();
             tag.putUUID("uuid", uuid);
             recreatedList.add(tag);

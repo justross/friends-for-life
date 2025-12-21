@@ -1,7 +1,7 @@
 package net.arcana.friendsforlife.petdatabase;
 
 import net.arcana.friendsforlife.Net;
-import net.arcana.friendsforlife.packets.PetUpdatePacket;
+import net.arcana.friendsforlife.packets.PetTrackerUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -13,7 +13,7 @@ import java.util.*;
 
 public class PetWatcher {
     private static int tickCounter = 0;
-    List<PetUpdatePacket.Entry> changedPets = new ArrayList<>();
+    List<PetTrackerUpdatePacket.Entry> changedPets = new ArrayList<>();
 
     public static void register() {
 
@@ -25,7 +25,7 @@ public class PetWatcher {
 
         PetTracker tracker = PetTracker.get(server);
 
-        List<PetUpdatePacket.Entry> updatedPets = tracker.getTrackedMap().values().stream()
+        List<PetTrackerUpdatePacket.Entry> updatedPets = tracker.getTrackedMap().values().stream()
                 .filter((petData) -> {
                     UUID petUuid = petData.uuid;
 
@@ -61,13 +61,13 @@ public class PetWatcher {
                     Component customName = Objects.requireNonNull(pd.getEntity(server).join().entity()).getCustomName();
                     String name = customName != null ? CompatComponent.toJson(customName) : "";
 
-                    return new PetUpdatePacket.Entry(pd.uuid, name, pd.position);
+                    return new PetTrackerUpdatePacket.Entry(pd.uuid, name, pd.position);
                 })
                 .toList();
 
 
         if (!updatedPets.isEmpty()) {
-            Net.CHANNEL.serverHandle(server).send(new PetUpdatePacket(updatedPets));
+            Net.CHANNEL.serverHandle(server).send(new PetTrackerUpdatePacket(updatedPets));
         }
         tracker.setDirty();
     }

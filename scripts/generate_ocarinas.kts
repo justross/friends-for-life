@@ -80,7 +80,7 @@ fun main() {
         println("Created ${color}_ocarina recipe")
     }
 
-    println("🎉Done generating all ocarina models")
+    println("Done generating all ocarina models")
 }
 
 // Call main

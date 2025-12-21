@@ -25,6 +25,8 @@
   "message.friendsforlife.home_set": "Home location set",
   "message.friendsforlife.home_unset": "Home location removed",
   "message.friendsforlife.ocarina_bound": "Ocarina bound to pet",
+  "message.friendsforlife.pet_retreated": "%1$s retreated",
+  "message.friendsforlife.pet_missing": "It seems %1$s is unable to come",
   "text.config.friendsforlife-config.title": "Friends For Life Options",
   "tooltip.friendsforlife.more_info": "Hold Shift for more info",
   "tooltip.friendsforlife.collar.info": "Makes your tamed pet invulnerable.\nCollared pets appear in the Roster.\nSneak + right-click a block to set home.\nHold ALT to view home block.",

@@ -257,9 +257,9 @@ public class OcarinaItem extends Item {
         }
     }
 
-    /*? if fabric {*/
-    @Environment(EnvType.CLIENT)
-            /*?}*/
+    /**
+     * Technically this runs on the server as well, but it relies on client side code
+     */
     private String getPetName(ItemStack stack) {
         //? if >=1.21 {
         /*String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");

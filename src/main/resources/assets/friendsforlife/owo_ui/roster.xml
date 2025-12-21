@@ -21,7 +21,7 @@
                                                 texture-width="10" texture-height="10"
                                                 region-width="10" region-height="10"
                                         >
-                                            <tooltip-text>Default home location</tooltip-text>
+                                            <tooltip-text translate="true">gui.friendsforlife.roster.default_home_location</tooltip-text>
                                         </texture>
                                         <label id="default-home-label">
                                             <margins>
@@ -224,7 +224,7 @@
                                                 texture-width="8" texture-height="10"
                                                 region-width="8" region-height="10"
                                         >
-                                            <tooltip-text>Current position</tooltip-text>
+                                            <tooltip-text translate="true">gui.friendsforlife.roster.current_position</tooltip-text>
                                         </texture>
                                         <label id="pet-position-label">
                                             <margins>
@@ -251,7 +251,7 @@
                                                 texture-width="10" texture-height="10"
                                                 region-width="10" region-height="10"
                                         >
-                                            <tooltip-text>Home location</tooltip-text>
+                                            <tooltip-text translate="true">gui.friendsforlife.roster.home_location</tooltip-text>
                                         </texture>
                                         <label id="home-position-label">
                                             <margins>

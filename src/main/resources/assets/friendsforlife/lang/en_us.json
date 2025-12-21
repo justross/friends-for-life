@@ -33,5 +33,8 @@
   "tooltip.friendsforlife.roster.info": "Tracks pets with Collars applied.\nSneak + right-click to set the default home point for pets.\nHold ALT to view default home block.",
   "tooltip.friendsforlife.ocarina.info": "Calls your pet to you.\nSneak + right-click to assign ocarina to pet.\nOnce applied, Sneak + right-click on assigned pet to send home.",
   "gui.friendsforlife.roster.guardian_mode": "Guardian Mode",
-  "gui.friendsforlife.roster.companion_mode": "Companion Mode"
+  "gui.friendsforlife.roster.companion_mode": "Companion Mode",
+  "gui.friendsforlife.roster.current_position": "Current position",
+  "gui.friendsforlife.roster.default_home_location": "Default home location",
+  "gui.friendsforlife.roster.home_location": "Home location"
 }

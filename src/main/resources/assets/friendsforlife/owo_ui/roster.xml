@@ -71,6 +71,7 @@
 
                             <padding>
                                 <all>10</all>
+                                <left>26</left>
                                 <right>18</right>
                             </padding>
                             <margins>
@@ -97,8 +98,8 @@
                                         <relative>100,0</relative>
                                     </positioning>
                                     <margins>
-                                        <bottom>0</bottom>
-                                        <right>3</right>
+                                        <top>1</top>
+                                        <right>20</right>
                                     </margins>
 
                                 </button>
@@ -107,7 +108,7 @@
                                 <label id="pet-name-label">
 
                                     <margins>
-                                        <top>15</top>
+                                        <top>16</top>
                                         <left>12</left>
                                     </margins>
 
@@ -295,10 +296,7 @@
                         <horizontal method="fixed">292</horizontal>
                         <vertical method="fixed">180</vertical>
                     </sizing>
-                    <positioning type="relative">50,50</positioning>
                     <padding>
-                        <all>16</all>
-                        <top>0</top>
                     </padding>
                 </flow-layout>
             </children>

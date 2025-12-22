@@ -36,11 +36,11 @@ public class FabricClientEntrypoint implements ClientModInitializer {
 
         // Register a listener for when the player joins a world/server
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-            EventHandler.handleClientJoin();
+            ClientEventHandler.handleClientJoin();
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            EventHandler.handleClientDisconnect();
+            ClientEventHandler.handleClientDisconnect();
         });
 
         // Home renderer block

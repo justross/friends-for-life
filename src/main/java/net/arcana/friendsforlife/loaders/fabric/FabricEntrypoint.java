@@ -3,7 +3,6 @@ package net.arcana.friendsforlife.loaders.fabric;
 
 import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.FriendsForLifeConfig;
-import net.arcana.friendsforlife.client.EventHandler;
 import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.items.Items;
 import net.arcana.friendsforlife.petdatabase.PetData;

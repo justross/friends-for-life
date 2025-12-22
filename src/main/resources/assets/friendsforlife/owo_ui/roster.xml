@@ -134,6 +134,7 @@
                                                 <left>6</left>
                                             </margins>
                                         </stack-layout>
+                                        <!-- Mode Button -->
                                         <stack-layout id="mode-button-container">
                                             <children>
                                                 <!-- Companion -->
@@ -164,13 +165,13 @@
                                                                  texture-width="18" texture-height="27"/>
                                                     </renderer>
                                                     <margins>
-                                                        <bottom>3</bottom>
+                                                        <bottom>2</bottom>
                                                     </margins>
                                                     <tooltip-text translate="true">gui.friendsforlife.roster.guardian_mode</tooltip-text>
                                                 </button>
                                             </children>
 
-                                            <positioning type="relative">47,22</positioning>
+                                            <positioning type="relative">46,24</positioning>
                                         </stack-layout>
 
                                         <flow-layout direction="vertical" id="command-buttons">
@@ -292,12 +293,12 @@
                     </children>
                     <sizing>
                         <horizontal method="fixed">292</horizontal>
-                        <vertical method="fixed">190</vertical>
+                        <vertical method="fixed">180</vertical>
                     </sizing>
                     <positioning type="relative">50,50</positioning>
                     <padding>
                         <all>16</all>
-                        <top>5</top>
+                        <top>0</top>
                     </padding>
                 </flow-layout>
             </children>

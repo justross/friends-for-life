@@ -67,8 +67,10 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
 
         guardianButton.visible = false;
         guardianButton.active = false;
+        guardianButton.setWidth(0);
         companionButton.visible = false;
         companionButton.active = false;
+        guardianButton.setWidth(0);
 
         // Hide mode button if there is only 1 mode available for the pet
         boolean shouldRender = currentPet != null && currentPet.modes.size() >= 2;
@@ -77,9 +79,11 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
             PetData.FollowMode mode = currentPet.mode;
             companionButton.visible = mode.equals(PetData.FollowMode.COMPANION);
             companionButton.active = mode.equals(PetData.FollowMode.COMPANION);
+            companionButton.setWidth(mode.equals(PetData.FollowMode.COMPANION) ? 9 : 0);
 
             guardianButton.visible = mode.equals(PetData.FollowMode.GUARDIAN);
             guardianButton.active = mode.equals(PetData.FollowMode.GUARDIAN);
+            guardianButton.setWidth(mode.equals(PetData.FollowMode.GUARDIAN) ? 9 : 0);
             var currentButton = mode.equals(PetData.FollowMode.COMPANION) ? companionButton : guardianButton;
             currentButton.onPress(button -> {
                 var currentMode = currentPet.mode;
@@ -88,11 +92,6 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
                 } else {
                     currentMode = PetData.FollowMode.COMPANION;
                 }
-                companionButton.visible = currentMode.equals(PetData.FollowMode.COMPANION);
-                companionButton.active = currentMode.equals(PetData.FollowMode.COMPANION);
-
-                guardianButton.visible = currentMode.equals(PetData.FollowMode.GUARDIAN);
-                guardianButton.active = currentMode.equals(PetData.FollowMode.GUARDIAN);
                 currentPet.mode = currentMode;
 
                 Net.CHANNEL.clientHandle().send(new SetPetModePacket(currentPet.uuid, currentMode.id));

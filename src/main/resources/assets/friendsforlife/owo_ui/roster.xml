@@ -149,9 +149,6 @@
                                                                  texture="friendsforlife:textures/gui/mode_buttons.png"
                                                                  texture-width="18" texture-height="27"/>
                                                     </renderer>
-                                                    <margins>
-                                                        <bottom>2</bottom>
-                                                    </margins>
                                                     <tooltip-text translate="true">gui.friendsforlife.roster.companion_mode</tooltip-text>
                                                 </button>
                                                 <!-- Guardian -->
@@ -165,14 +162,11 @@
                                                                  texture="friendsforlife:textures/gui/mode_buttons.png"
                                                                  texture-width="18" texture-height="27"/>
                                                     </renderer>
-                                                    <margins>
-                                                        <bottom>2</bottom>
-                                                    </margins>
                                                     <tooltip-text translate="true">gui.friendsforlife.roster.guardian_mode</tooltip-text>
                                                 </button>
                                             </children>
 
-                                            <positioning type="relative">46,24</positioning>
+                                            <positioning type="relative">46,22</positioning>
                                         </stack-layout>
 
                                         <flow-layout direction="vertical" id="command-buttons">

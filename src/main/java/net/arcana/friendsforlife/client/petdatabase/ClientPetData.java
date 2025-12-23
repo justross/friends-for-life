@@ -3,8 +3,10 @@ package net.arcana.friendsforlife.client.petdatabase;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -17,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class ClientPetData {
     public final UUID uuid;
@@ -88,7 +91,11 @@ public class ClientPetData {
     public String getName() {
         Objects.requireNonNull(entityData);
         if (entityData.contains("CustomName")) {
-            return Objects.requireNonNull(CompatComponent.fromJson(entityData.getString("CustomName"))).getString();
+            HolderLookup.Provider provider =
+                    Minecraft.getInstance().level != null
+                            ? Minecraft.getInstance().level.registryAccess()
+                            : HolderLookup.Provider.create(Stream.empty());
+            return Objects.requireNonNull(CompatComponent.fromJson(entityData.getString("CustomName"), provider)).getString();
         }
 
         if (entityData.contains("EntityType")) {

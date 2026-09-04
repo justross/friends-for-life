@@ -3,7 +3,8 @@
   "package": "net.arcana.friendsforlife.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "TameableEntityMixin",
+    "TamableAnimalMixin",
+    "AbstractHorseMixin",
     "LivingEntityMixin",
     "MobEntityMixin",
     "PlayerEntityMixin",

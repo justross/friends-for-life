@@ -16,7 +16,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -28,16 +27,16 @@ public class PetTracker extends SavedData {
     private final Set<UUID> recreated = new HashSet<>(); // Entities that have been recreated and must be removed
 
     @Nullable
-    public PetData addPet(TamableAnimal tame, ServerPlayer player, ItemStack item, long tameTimestamp) {
-        Init.LOGGER.info("adding new entity to be tracked: " + tame.getName());
-        if (tracked.values().stream().noneMatch(pet -> Objects.equals(pet.entityUuid, tame.getUUID()))) {
+    public PetData addPet(Entity entity, ServerPlayer player, ItemStack item, long tameTimestamp) {
+        Init.LOGGER.info("adding new entity to be tracked: " + entity.getName());
+        if (tracked.values().stream().noneMatch(pet -> Objects.equals(pet.entityUuid, entity.getUUID()))) {
             CompoundTag collar = new CompoundTag();
             //? if >=1.21 {
             /*collar = CompatItemStack.save(item, collar, player.level());
             *///?} else {
             CompatItemStack.save(item, collar, player.level());
              //?}
-            PetData pd = new PetData(tame, player, collar, tameTimestamp);
+            PetData pd = new PetData(entity, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
             Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
             return pd;

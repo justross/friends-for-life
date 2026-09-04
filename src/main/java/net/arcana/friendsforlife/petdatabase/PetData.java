@@ -2,7 +2,7 @@ package net.arcana.friendsforlife.petdatabase;
 
 import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
-import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
+import net.arcana.friendsforlife.accessors.TrackableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
 import net.arcana.friendsforlife.packets.PetDownedUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
@@ -13,16 +13,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -103,14 +99,14 @@ public class PetData {
      * Attempts to set mode on PetData.
      *
      */
-    public FollowMode trySetMode(FollowMode mode, TamableAnimal tame) {
+    public FollowMode trySetMode(FollowMode mode, Entity entity) {
         if (mode == FollowMode.GUARDIAN && canEntityFight()) {
             this.mode = mode;
         } else {
             this.mode = FollowMode.COMPANION;
         }
 
-        TameableModeHelper.setTameableMode(this.mode, tame);
+        TrackableModeHelper.setTrackableMode(this.mode, entity);
         return this.mode;
     }
 
@@ -131,20 +127,20 @@ public class PetData {
         return modes;
     }
 
-    public record PetEntityHandle(@Nullable TamableAnimal entity, @Nullable CompoundTag shoulderNbt) {
+    public record PetEntityHandle(@Nullable Entity entity, @Nullable CompoundTag shoulderNbt) {
     }
 
-    public PetData(TamableAnimal tame, Entity player, CompoundTag collarItem, long tameDate) {
-        this.uuid = ((TameableEntityDecorator) tame).friendsforlife_getUuid(); // Separate UUID from entity for tracking purposes
-        this.entityUuid = tame.getUUID();
-        this.position = tame.blockPosition();
+    public PetData(Entity entity, Entity player, CompoundTag collarItem, long tameDate) {
+        this.uuid = ((TrackableEntityDecorator) entity).friendsforlife_getUuid(); // Separate UUID from entity for tracking purposes
+        this.entityUuid = entity.getUUID();
+        this.position = entity.blockPosition();
         this.OwnerName = player.getScoreboardName();
         this.ownerUuid = player.getUUID();
         this.collar = collarItem;
         this.entityData = new CompoundTag();
-        tame.saveAsPassenger(this.entityData);
-        this.entityData.putString("EntityType", String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(tame.getType())));
-        trySetMode(FollowMode.COMPANION, tame);
+        entity.save(this.entityData);
+        this.entityData.putString("EntityType", String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())));
+        trySetMode(FollowMode.COMPANION, entity);
         this.modes = getModes();
         this.tameTimestamp = tameDate;
     }
@@ -280,6 +276,8 @@ public class PetData {
     public void updateEntityData(Consumer<CompoundTag> editor) {
         if (entityData == null)
             return;
+        entityData.remove("SaddleItem");
+        entityData.remove("body_armor_item");
         editor.accept(entityData);
     }
 
@@ -304,15 +302,15 @@ public class PetData {
                 entity = world.getEntity(this.entityUuid);
             }
             if (entity != null) {
-                return CompletableFuture.completedFuture(new PetEntityHandle((TamableAnimal) entity, null));
+                return CompletableFuture.completedFuture(new PetEntityHandle((Entity) entity, null));
             }
         }
 
         for (ServerLevel world : server.getAllLevels()) {
             for (Entity entity : world.getAllEntities()) {
-                if (entity instanceof TamableAnimal tame && tame instanceof TameableEntityDecorator data) {
+                if (entity instanceof OwnableEntity ownable && ownable instanceof TrackableEntityDecorator data) {
                     if (data.friendsforlife_getUuid().equals(uuid)) {
-                        return CompletableFuture.completedFuture(new PetEntityHandle((TamableAnimal) tame, null));
+                        return CompletableFuture.completedFuture(new PetEntityHandle((Entity) ownable, null));
                     }
                 }
             }
@@ -338,22 +336,22 @@ public class PetData {
     }
 
 
-    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, Entity entity) {
+    public LivingEntity recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, Entity entity) {
         entity.discard();
         return recreateEntity(server, worldKey, x, y, z, false);
     }
 
-    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z) {
+    public LivingEntity recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z) {
         return recreateEntity(server, worldKey, x, y, z, true);
     }
 
     /**
      * Recreate Entity
      *
-     * @return The recreated TameableEntity, or null if recreation failed
+     * @return The recreated TrackableEntity, or null if recreation failed
      */
     @Nullable
-    public TamableAnimal recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, boolean deleteEntity) {
+    public LivingEntity recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, boolean deleteEntity) {
         if (server == null || entityData == null)
             return null;
 
@@ -374,7 +372,7 @@ public class PetData {
         }
 
         Entity entity = type.create(server.getLevel(worldKey));
-        if (!(entity instanceof TamableAnimal tame))
+        if (!(entity instanceof LivingEntity livingEntity))
             return null;
 
         // Remove from shoulder
@@ -412,19 +410,18 @@ public class PetData {
         nbtCopy.remove("Pose");
 
         if (nbtCopy.getFloat("Health") <= 0) {
-            nbtCopy.putFloat("Health", tame.getMaxHealth());
+            nbtCopy.putFloat("Health", livingEntity.getMaxHealth());
         }
 
-
-        tame.load(nbtCopy);
+        entity.load(nbtCopy);
         entityData = nbtCopy;
 
-        tame.setPos(x, y, z);
+        entity.setPos(x, y, z);
 
-        Objects.requireNonNull(server.getLevel(worldKey)).addFreshEntity(tame);
+        Objects.requireNonNull(server.getLevel(worldKey)).addFreshEntity(entity);
 
-        tame.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
-        return tame;
+        entity.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
+        return livingEntity;
     }
 
     /**
@@ -435,14 +432,14 @@ public class PetData {
         this.isDowned = true;
         Net.CHANNEL.serverHandle(server).send(new PetDownedUpdatePacket(this.uuid, this.isDowned));
         var entity = getEntity(server).join().entity();
-        if (entity != null) {
-            entity.setPose(Pose.SITTING);
+        if (entity instanceof TamableAnimal tame) {
+            tame.setPose(Pose.SITTING);
         }
         TaskScheduler.schedule(() -> {
             this.isDowned = false;
             var newEntity = getEntity(server).join().entity();
             if (newEntity != null) {
-                ((TameableEntityDecorator) newEntity).friendsforlife_setDowned(false);
+                ((TrackableEntityDecorator) newEntity).friendsforlife_setDowned(false);
             }
             Net.CHANNEL.serverHandle(server).send(new PetDownedUpdatePacket(this.uuid, this.isDowned));
         }, CompatConfig.petRespawnTimer() * 20);

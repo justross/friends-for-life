@@ -29,6 +29,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -137,13 +138,13 @@ public class OcarinaItem extends Item {
                         hbh = HomeBlock.get(world.getServer()).getHome(world.getServer(), player.getUUID());
                     }
                     if (hbh != null) {
-                        var tame = petData.recreateEntity(
+                        var livingEntity = petData.recreateEntity(
                                 world.getServer(),
                                 world.dimension(),
                                 hbh.pos().getX(),
                                 hbh.pos().getY(),
                                 hbh.pos().getZ());
-                        if (tame != null) {
+                        if (livingEntity instanceof TamableAnimal tame) {
                             TameableWanderHelper.makeTameableWander(tame);
                         }
                     }
@@ -180,7 +181,7 @@ public class OcarinaItem extends Item {
      * Handles interactions from bound pet entity callback
      */
     public InteractionResult useOcarinaFromPet(Level world, Player player, ItemStack stack, PetData petData,
-                                               TamableAnimal tame) {
+                                               Entity entity) {
         if (!player.getCooldowns().isOnCooldown(this)) {
             CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
             //? if >=1.21 {

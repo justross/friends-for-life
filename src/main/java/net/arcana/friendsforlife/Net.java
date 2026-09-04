@@ -12,6 +12,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.level.Level;
 
@@ -80,7 +81,7 @@ public class Net {
 
                         PetTracker tracker = PetTracker.get(server);
                         PetData petData = tracker.getTrackedMap().get(petUuid);
-                        TamableAnimal entity = null;
+                        LivingEntity entity = null;
                         ResourceKey<Level> targetWorldKey = ResourceKey.create(Registries.DIMENSION, dim);
 
                         if (petData != null) {
@@ -91,11 +92,14 @@ public class Net {
                                 return;
                             }
 
-                            if (shouldWander) {
-                                TameableWanderHelper.makeTameableWander(entity);
-                            } else {
-                                entity.setOrderedToSit(false);
-                                TameableWanderHelper.stopWandering(entity);
+                            // Only tameable pets (i.e. not mountable animals) should implement modded wandering behavior
+                            if (entity instanceof TamableAnimal tame) {
+                                if (shouldWander) {
+                                    TameableWanderHelper.makeTameableWander(tame);
+                                } else {
+                                    tame.setOrderedToSit(false);
+                                    TameableWanderHelper.stopWandering(entity);
+                                }
                             }
 
                         } else {

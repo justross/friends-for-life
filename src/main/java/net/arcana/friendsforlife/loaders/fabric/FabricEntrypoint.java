@@ -20,7 +20,6 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.TamableAnimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,15 +77,7 @@ public class FabricEntrypoint implements ModInitializer {
         ServerEntityEvents.ENTITY_LOAD.register(EventHandler::handleEntityLoad);
 
         // Snapshot entity to PetData NBT when unloaded
-        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-            if (entity instanceof TamableAnimal tame && !world.isClientSide) {
-                PetTracker tracker = PetTracker.get(world.getServer());
-                PetData pd = tracker.getByEntityId(tame.getUUID());
-                if (pd != null) {
-                    pd.updateEntityData(tame::saveWithoutId);
-                }
-            }
-        });
+        ServerEntityEvents.ENTITY_UNLOAD.register(EventHandler::handleEntityUnload);
 
         // Server tick stuff
         ServerTickEvents.END_SERVER_TICK.register(server -> {

@@ -131,7 +131,7 @@
                                                 <vertical method="fixed">50</vertical>
                                             </sizing>
                                             <margins>
-                                                <top>8</top>
+                                                <top>12</top>
                                                 <left>6</left>
                                             </margins>
                                         </stack-layout>

@@ -2,6 +2,7 @@ package net.arcana.friendsforlife;
 
 import net.arcana.friendsforlife.accessors.MobEntityAccessor;
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
@@ -34,7 +35,7 @@ public class TameableWanderHelper {
         }
     }
 
-    public static void stopWandering(TamableAnimal entity) {
+    public static void stopWandering(Entity entity) {
         if (entity instanceof TameableEntityDecorator wanderable) {
             wanderable.friendsforlife_setForceWander(false);
 

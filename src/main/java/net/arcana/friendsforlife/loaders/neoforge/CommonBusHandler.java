@@ -4,6 +4,7 @@
 import net.arcana.friendsforlife.EventHandler;
 import net.arcana.friendsforlife.Init;
 import net.arcana.friendsforlife.TaskScheduler;
+import net.arcana.friendsforlife.accessors.TrackableEntityDecorator;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.petdatabase.PetWatcher;
@@ -11,6 +12,7 @@ import net.arcana.friendsforlife.util.ServerContext;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -66,13 +68,7 @@ public class CommonBusHandler {
     public static void onEntityUnload(EntityLeaveLevelEvent event) {
         var entity = event.getEntity();
         var world = event.getLevel();
-        if (entity instanceof TamableAnimal tame && !world.isClientSide) {
-            PetTracker tracker = PetTracker.get(world.getServer());
-            PetData pd = tracker.getByEntityId(tame.getUUID());
-            if (pd != null) {
-                pd.updateEntityData(tame::saveWithoutId);
-            }
-        }
+        EventHandler.handleEntityUnload(entity, world);
     }
 
     @SubscribeEvent

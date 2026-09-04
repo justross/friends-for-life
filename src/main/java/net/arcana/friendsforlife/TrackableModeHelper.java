@@ -1,17 +1,17 @@
 package net.arcana.friendsforlife;
 
 import net.arcana.friendsforlife.accessors.MobEntityAccessor;
-import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
+import net.arcana.friendsforlife.accessors.TrackableEntityDecorator;
 import net.arcana.friendsforlife.petdatabase.PetData;
-import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.Entity;
 
-public class TameableModeHelper {
-    public static void setTameableMode(PetData.FollowMode mode, TamableAnimal entity) {
+public class TrackableModeHelper {
+    public static void setTrackableMode(PetData.FollowMode mode, Entity entity) {
         if (entity == null || entity.level().isClientSide)
             return;
         MobEntityAccessor accessor = (MobEntityAccessor) entity;
 
-        if (accessor instanceof TameableEntityDecorator ted) {
+        if (accessor instanceof TrackableEntityDecorator ted) {
             ted.friendsforlife_setMode(mode);
         }
 

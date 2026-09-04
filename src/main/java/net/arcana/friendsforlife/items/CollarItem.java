@@ -6,6 +6,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 
 //? if fabric {
@@ -119,10 +120,10 @@ public class CollarItem extends Item {
         return InteractionResultHolder.success(stack);
     }
 
-    public InteractionResult applyCollar(ItemStack item, ServerPlayer user, TamableAnimal tame) {
+    public InteractionResult applyCollar(ItemStack item, ServerPlayer user, Entity entity) {
         var tracker = PetTracker.get(user.getServer());
         // tell server to track the pet
-        PetData pd = tracker.addPet(tame, user, item, Instant.now().toEpochMilli());
+        PetData pd = tracker.addPet(entity, user, item, Instant.now().toEpochMilli());
         if (pd == null) {
             return InteractionResult.SUCCESS;
         }
@@ -152,7 +153,7 @@ public class CollarItem extends Item {
 
         user.level().playSound(
                 null, // broadcast to nearby players
-                tame.getX(), tame.getY(), tame.getZ(),
+                entity.getX(), entity.getY(), entity.getZ(),
                 SoundEvents.ARMOR_EQUIP_LEATHER,
                 SoundSource.PLAYERS,
                 1.0F, 1.0F);
@@ -163,14 +164,14 @@ public class CollarItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
-    public static ItemStack getCollar(Player user, TamableAnimal tame, PetData petData) {
-        MinecraftServer server = tame.level().getServer();
+    public static ItemStack getCollar(Player user, Entity entity, PetData petData) {
+        MinecraftServer server = entity.level().getServer();
         if (server == null)
             return null;
         if (petData == null)
             return null;
 
-        user.level().playSound(null, tame.getX(), tame.getY(), tame.getZ(),
+        user.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                 SoundEvents.ARMOR_EQUIP_LEATHER,
                 SoundSource.PLAYERS,
                 1.0f, 1.0f
@@ -182,12 +183,12 @@ public class CollarItem extends Item {
          //?}
     }
 
-    public static void removePet(TamableAnimal tame, PetData petData) {
-        MinecraftServer server = tame.level().getServer();
+    public static void removePet(Entity entity, PetData petData) {
+        MinecraftServer server = entity.level().getServer();
         if (server == null)
             return;
         PetTracker.get(server).removePet(server, petData.uuid);
-        tame.setInvulnerable(false);
+        entity.setInvulnerable(false);
     }
 
     @Override

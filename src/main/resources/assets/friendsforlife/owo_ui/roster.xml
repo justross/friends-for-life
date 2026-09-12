@@ -128,7 +128,7 @@
                                             </children>
                                             <sizing>
                                                 <horizontal method="fixed">50</horizontal>
-                                                <vertical method="fixed">50</vertical>
+                                                <vertical method="fixed">40</vertical>
                                             </sizing>
                                             <margins>
                                                 <top>12</top>

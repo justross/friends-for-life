@@ -1,9 +1,16 @@
 package net.arcana.friendsforlife.mixin;
 
+import net.arcana.friendsforlife.accessors.EntityAccessor;
 import net.arcana.friendsforlife.accessors.TrackableEntityDecorator;
 import net.arcana.friendsforlife.petdatabase.PetData;
+import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -68,6 +75,48 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
         this.friendsforlife_mode = mode;
     }
 
+    @Unique
+    private void updateEntityData() {
+        AbstractHorse self = ((AbstractHorse) (Object) this);
+        MinecraftServer server = ((EntityAccessor) self).friendsforlife_getServer();
+        if (server != null) {
+        PetData trackedPetData = PetTracker.get(server).getByEntityId(self.getUUID());
+            if (trackedPetData != null) {
+                trackedPetData.updateEntityData(server, self::saveWithoutId);
+            }
+        }
+    }
+
+
+    //? if >=1.21.1 {
+
+    /*@Inject(method = "equipSaddle", at = @At("TAIL"))
+    private void onSaddle(ItemStack itemStack, @Nullable SoundSource soundSourcy, CallbackInfo ci) {
+        updateEntityData();
+    }
+
+    @Inject(method = "equipBodyArmor", at = @At("TAIL"))
+    private void equipBodyArmor(Player player, ItemStack itemStack, CallbackInfo ci) {
+        updateEntityData();
+    }
+
+    *///?} else {
+    @Inject(method = "equipArmor", at = @At("TAIL"))
+    private void equipArmor(Player player, ItemStack itemStack, CallbackInfo ci) {
+        updateEntityData();
+    }
+
+    @Inject(method = "equipSaddle", at = @At("TAIL"))
+    private void onSaddle(@Nullable SoundSource soundSourcy, CallbackInfo ci) {
+        updateEntityData();
+    }
+    
+    //?}
+
+//    @Inject(method = "containerChanged", at = @At("TAIL"))
+//    private void containerChanged(Container container, CallbackInfo ci) {
+//        updateEntityData();
+//    }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void writeStateToNbt(CompoundTag nbt, CallbackInfo ci) {

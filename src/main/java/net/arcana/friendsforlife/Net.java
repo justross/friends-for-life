@@ -92,7 +92,7 @@ public class Net {
                                 return;
                             }
 
-                            // Only tameable pets (i.e. not mountable animals) should implement modded wandering behavior
+                            // Only tameable pets (i.e. not mountable animals) should implement custom wandering behavior
                             if (entity instanceof TamableAnimal tame) {
                                 if (shouldWander) {
                                     TameableWanderHelper.makeTameableWander(tame);
@@ -148,6 +148,7 @@ public class Net {
         });
 
         Net.CHANNEL.registerClientboundDeferred(PetListPacket.class);
+        Net.CHANNEL.registerClientboundDeferred(PetDataUpdatePacket.class);
         Net.CHANNEL.registerClientboundDeferred(PetTrackerUpdatePacket.class);
         Net.CHANNEL.registerClientboundDeferred(PetModeUpdatePacket.class);
         Net.CHANNEL.registerClientboundDeferred(PetDownedUpdatePacket.class);

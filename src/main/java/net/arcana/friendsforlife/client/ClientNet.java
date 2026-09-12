@@ -34,7 +34,16 @@ public class ClientNet {
             });
         });
 
-        // Pet update packet
+        Net.CHANNEL.registerClientbound(PetDataUpdatePacket.class, (message, access) -> {
+            access.runtime().execute(() -> {
+                ClientPetData cpd = ClientPetList.getPet(message.pet().uuid());
+                if (cpd != null) {
+                    ClientPetList.setPet(ClientPetData.fromEntry(message.pet()));
+                }
+            });
+        });
+
+        // Pet tracker update packet
         Net.CHANNEL.registerClientbound(PetTrackerUpdatePacket.class, (message, access) -> {
             access.runtime().execute(() -> {
                 for (PetTrackerUpdatePacket.Entry update : message.pets()) {
@@ -97,7 +106,7 @@ public class ClientNet {
             });
         });
 
-        // Pet misssing message from server
+        // Pet missing message from server
         Net.CHANNEL.registerClientbound(PetMissingMessagePacket.class, (message, access) -> {
             access.runtime().execute(() -> {
                 var pet = ClientPetList.getPet(message.uuid());

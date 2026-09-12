@@ -112,7 +112,7 @@ public class EventHandler {
             PetTracker tracker = PetTracker.get(world.getServer());
             PetData pd = tracker.get(trackable.friendsforlife_getUuid());
             if (pd != null) {
-                pd.updateEntityData(entity::saveWithoutId);
+                pd.updateEntityData(world.getServer(), entity::saveWithoutId);
             }
         }
     }

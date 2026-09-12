@@ -32,6 +32,10 @@ public class ClientPetList {
         notifyListeners();
     }
 
+    public static synchronized void setPet(ClientPetData pet) {
+        pets.put(pet.uuid, pet);
+    }
+
     @SuppressWarnings("unused")
     public static synchronized List<ClientPetData> getAllPets() {
         return List.copyOf(pets.values());

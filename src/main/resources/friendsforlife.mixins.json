@@ -5,12 +5,15 @@
   "mixins": [
     "TamableAnimalMixin",
     "AbstractHorseMixin",
+    "AbstractChestedHorseMixin",
+    "HorseInventoryMenuMixin",
     "LivingEntityMixin",
     "MobEntityMixin",
     "PlayerEntityMixin",
     "FollowOwnerGoalMixin",
     "WanderAroundGoalMixin",
-    "ServerPlayerEntityMixin"
+    "ServerPlayerEntityMixin",
+    "EntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -51,7 +51,7 @@ public class PetWatcher {
                     String newName = entity.getCustomName() != null ? entity.getCustomName().toString() : "";
 
                     if (!newName.equals(oldName)) {
-                        petData.updateEntityData(entity::saveWithoutId); // overwrite snapshot with current NBT
+                        petData.updateEntityData(server, entity::saveWithoutId); // overwrite snapshot with current NBT
                         petChanged = true;
                     }
 

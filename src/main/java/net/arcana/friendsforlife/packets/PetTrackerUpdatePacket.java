@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.UUID;
 
 
+/**
+ * Updates all pets positions and names
+ * Runs frequently
+ */
 public record PetTrackerUpdatePacket(List<Entry> pets) {
     /**
      * @param uuid

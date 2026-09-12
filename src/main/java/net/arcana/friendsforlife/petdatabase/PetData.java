@@ -4,6 +4,7 @@ import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.arcana.friendsforlife.accessors.TrackableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.packets.PetDataUpdatePacket;
 import net.arcana.friendsforlife.packets.PetDownedUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatConfig;
@@ -273,12 +274,22 @@ public class PetData {
                 entityData, isDowned, mode);
     }
 
-    public void updateEntityData(Consumer<CompoundTag> editor) {
+    public void updateEntityData(MinecraftServer server, Consumer<CompoundTag> editor) {
         if (entityData == null)
             return;
         entityData.remove("SaddleItem");
-        entityData.remove("body_armor_item");
+        //? if >=1.21.1 {
+        /*entityData.remove("body_armor_item");
+        *///?} else {
+        entityData.remove("ArmorItem");
+        entityData.remove("DecorItem");
+        //?}
         editor.accept(entityData);
+
+        ServerPlayer player = server.getPlayerList().getPlayer(ownerUuid);
+        if (player != null) {
+            Net.CHANNEL.serverHandle(player).send(new PetDataUpdatePacket(toEntry()));
+        }
     }
 
     @Nullable

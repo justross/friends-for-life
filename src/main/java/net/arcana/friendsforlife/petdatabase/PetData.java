@@ -20,6 +20,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -401,7 +404,15 @@ public class PetData {
             }
         }
 
+        //? if >=1.21.1 {
+        /*boolean hasLeash = entityData.contains("leash");
+        *///?} else {
+
+        boolean hasLeash = entityData.contains("Leash");
+        //?}
+
         CompoundTag nbtCopy = entityData.copy();
+
         entityUuid = UUID.randomUUID();
         nbtCopy.putUUID("UUID", entityUuid);
         nbtCopy.remove("Pos");
@@ -410,6 +421,11 @@ public class PetData {
         // Remove sitting because we can't rely on entity.setSitting to work on new
         // entities
         nbtCopy.remove("Sitting");
+        //? if >=1.21.1 {
+        /*nbtCopy.remove("leash");
+        *///?} else {
+        nbtCopy.remove("Leash");
+        //?}
         nbtCopy.remove("DeathTime");
         nbtCopy.remove("ActiveEffects");
         nbtCopy.remove("HurtTime");
@@ -432,6 +448,18 @@ public class PetData {
         Objects.requireNonNull(server.getLevel(worldKey)).addFreshEntity(entity);
 
         entity.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
+
+        if (hasLeash) {
+            ItemEntity leash = new ItemEntity(
+                    Objects.requireNonNull(server.getLevel(worldKey)),
+                    x + 0.5,
+                    y + 0.5,
+                    z + 0.5,
+                    new ItemStack(Items.LEAD)
+            );
+            Objects.requireNonNull(server.getLevel(worldKey)).addFreshEntity(leash);
+        }
+
         return livingEntity;
     }
 

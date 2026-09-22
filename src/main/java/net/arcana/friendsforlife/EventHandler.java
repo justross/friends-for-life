@@ -119,8 +119,8 @@ public class EventHandler {
 
     public static void handleEntityLoad(Entity entity, ServerLevel world) {
 
-        if (entity instanceof OwnableEntity ownable) {
-            UUID uuid = ((TrackableEntityDecorator) ownable).friendsforlife_getUuid();
+        if (entity instanceof TrackableEntityDecorator trackable) {
+            UUID uuid = trackable.friendsforlife_getUuid();
             PetTracker tracker = PetTracker.get(world.getServer());
             if (uuid != null) {
 
@@ -138,11 +138,11 @@ public class EventHandler {
                 if (pd != null) {
                     // entityUuid may be null if PetData was deserialized
                     if (pd.entityUuid == null) {
-                        pd.entityUuid = ((Entity) ownable).getUUID();
+                        pd.entityUuid = ((Entity) trackable).getUUID();
                     }
-                    pd.trySetMode(pd.mode, (Entity) ownable);
+                    pd.trySetMode(pd.mode, (Entity) trackable);
 
-                    ((TrackableEntityDecorator) ownable).friendsforlife_setDowned(pd.isDowned);
+                    trackable.friendsforlife_setDowned(pd.isDowned);
                 }
 
             }

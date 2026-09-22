@@ -33,7 +33,7 @@ modstitch {
     metadata {
         modId = "friendsforlife"
         modName = "Friends For Life"
-        modVersion = "1.2.1"
+        modVersion = "1.3.1"
         modGroup = "net.arcana"
         modAuthor = "conbo, jjorge"
         modDescription = "Take your pets on your next adventure with this QoL mod!"

@@ -17,11 +17,13 @@ Jars land in `versions/<target>/build/libs/friendsforlife-<version>+<target>.jar
 2. Create API tokens:
    - Modrinth: Settings → PATs, with the *Create versions* scope
    - CurseForge: https://legacy.curseforge.com/account/api-tokens
-3. Keep the tokens out of the repo. Export them in your shell, e.g. in `~/.bashrc` or a sourced file outside the project:
-   ```sh
-   export MODRINTH_TOKEN=...
-   export CURSEFORGE_TOKEN=...
+3. Copy `secrets.properties.example` to `secrets.properties` and paste the tokens in:
+   ```properties
+   modrinth.token=...
+   curseforge.token=...
    ```
+   `secrets.properties` is in `.gitignore`, so it never gets committed. (The `MODRINTH_TOKEN` /
+   `CURSEFORGE_TOKEN` environment variables also work, e.g. for CI; the file takes priority.)
 
 ## Releasing
 

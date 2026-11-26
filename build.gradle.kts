@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
 //    id("fabric-loom") version "1.3.+"
     id("dev.isxander.modstitch.base") version "0.5.12"
@@ -172,10 +174,20 @@ tasks.withType<AbstractArchiveTask>().configureEach {
 // ---------------------------------------------------------------------------------------------
 // Publishing to Modrinth and CurseForge. See PUBLISHING.md.
 //   Dry run, all versions:  ./gradlew chiseledPublish -Ppublish.dry_run=true
-//   Publish, all versions:  MODRINTH_TOKEN=... CURSEFORGE_TOKEN=... ./gradlew chiseledPublish
+//   Publish, all versions:  ./gradlew chiseledPublish   (tokens in secrets.properties, which git ignores)
 // ---------------------------------------------------------------------------------------------
 val loader = project.name.substringAfterLast('-')
 val publishDryRun = (findProperty("publish.dry_run") as String?).toBoolean()
+
+// API tokens: read from secrets.properties in the project root (git-ignored; copy secrets.properties.example),
+// falling back to the MODRINTH_TOKEN / CURSEFORGE_TOKEN environment variables.
+val secrets = Properties().apply {
+    rootProject.file("secrets.properties").takeIf { it.isFile }?.reader()?.use { load(it) }
+}
+fun token(key: String, envVar: String): String =
+    secrets.getProperty(key)?.trim().takeUnless { it.isNullOrEmpty() } ?: System.getenv(envVar).orEmpty().trim()
+val modrinthToken = token("modrinth.token", "MODRINTH_TOKEN")
+val curseforgeToken = token("curseforge.token", "CURSEFORGE_TOKEN")
 val modrinthId = (findProperty("publish.modrinth_id") as String?).orEmpty()
 val curseforgeId = (findProperty("publish.curseforge_id") as String?).orEmpty()
 val publishMcVersions = (property("publish.minecraft_versions") as String).split(",").map { it.trim() }
@@ -209,7 +221,7 @@ configure<me.modmuss50.mpp.ModPublishExtension> {
 
     modrinth {
         projectId.set(modrinthId)
-        accessToken.set(providers.environmentVariable("MODRINTH_TOKEN"))
+        accessToken.set(modrinthToken)
         minecraftVersions.addAll(publishMcVersions)
         requires("owo-lib")
         if (loader == "fabric") requires("fabric-api")
@@ -217,7 +229,7 @@ configure<me.modmuss50.mpp.ModPublishExtension> {
 
     curseforge {
         projectId.set(curseforgeId)
-        accessToken.set(providers.environmentVariable("CURSEFORGE_TOKEN"))
+        accessToken.set(curseforgeToken)
         minecraftVersions.addAll(publishMcVersions)
         clientRequired.set(true)
         serverRequired.set(true)
@@ -230,11 +242,11 @@ configure<me.modmuss50.mpp.ModPublishExtension> {
 val publishRequirements = mapOf(
     "publishModrinth" to listOf(
         "publish.modrinth_id in gradle.properties" to { modrinthId.isNotBlank() },
-        "MODRINTH_TOKEN environment variable" to { !System.getenv("MODRINTH_TOKEN").isNullOrBlank() },
+        "modrinth.token in secrets.properties" to { modrinthToken.isNotBlank() },
     ),
     "publishCurseforge" to listOf(
         "publish.curseforge_id in gradle.properties" to { curseforgeId.isNotBlank() },
-        "CURSEFORGE_TOKEN environment variable" to { !System.getenv("CURSEFORGE_TOKEN").isNullOrBlank() },
+        "curseforge.token in secrets.properties" to { curseforgeToken.isNotBlank() },
     ),
 )
 tasks.matching { it.name in publishRequirements }.configureEach {

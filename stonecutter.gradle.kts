@@ -8,6 +8,12 @@ stonecutter registerChiseled tasks.register("chiseledBuild", stonecutter.chisele
     ofTask("build")
 }
 
+// Builds and publishes every version to Modrinth and CurseForge. See PUBLISHING.md.
+stonecutter registerChiseled tasks.register("chiseledPublish", stonecutter.chiseled) {
+    group = "publishing"
+    ofTask("publishMods")
+}
+
 allprojects {
     repositories {
         mavenCentral()

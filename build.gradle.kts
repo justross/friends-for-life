@@ -3,6 +3,8 @@ plugins {
     id("dev.isxander.modstitch.base") version "0.5.12"
 }
 
+val releaseVersion = "1.4.0"
+
 fun prop(name: String, consumer: (prop: String) -> Unit) {
     (findProperty(name) as? String?)
         ?.let(consumer)
@@ -33,7 +35,7 @@ modstitch {
     metadata {
         modId = "friendsforlife"
         modName = "Friends For Life"
-        modVersion = "1.3.1"
+        modVersion = releaseVersion
         modGroup = "net.arcana"
         modAuthor = "conbo, jjorge"
         modDescription = "Take your pets on your next adventure with this QoL mod!"
@@ -158,5 +160,88 @@ dependencies {
 findProperty("deps.neoform_runtime")?.let { nfrtVersion ->
     plugins.withId("net.neoforged.moddev") {
         extensions.getByType<net.neoforged.nfrtgradle.NeoFormRuntimeExtension>().version.set(nfrtVersion.toString())
+    }
+}
+
+// Jars are named friendsforlife-<version>+<target>.jar, e.g. friendsforlife-1.4.0+1.21.10-neoforge.jar
+// (AbstractArchiveTask, not Jar: Loom's remapJar extends org.gradle.jvm.tasks.Jar, which withType<Jar> misses)
+tasks.withType<AbstractArchiveTask>().configureEach {
+    archiveVersion.set("$releaseVersion+${project.name}")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Publishing to Modrinth and CurseForge. See PUBLISHING.md.
+//   Dry run, all versions:  ./gradlew chiseledPublish -Ppublish.dry_run=true
+//   Publish, all versions:  MODRINTH_TOKEN=... CURSEFORGE_TOKEN=... ./gradlew chiseledPublish
+// ---------------------------------------------------------------------------------------------
+val loader = project.name.substringAfterLast('-')
+val publishDryRun = (findProperty("publish.dry_run") as String?).toBoolean()
+val modrinthId = (findProperty("publish.modrinth_id") as String?).orEmpty()
+val curseforgeId = (findProperty("publish.curseforge_id") as String?).orEmpty()
+val publishMcVersions = (property("publish.minecraft_versions") as String).split(",").map { it.trim() }
+
+/** The first "## " section of CHANGELOG.md, without its heading. */
+fun latestChangelog(): String {
+    val lines = rootProject.file("CHANGELOG.md").readLines()
+    val start = lines.indexOfFirst { it.startsWith("## ") }
+    if (start < 0) return ""
+    val end = lines.drop(start + 1).indexOfFirst { it.startsWith("## ") }.let { if (it < 0) lines.size else start + 1 + it }
+    return lines.subList(start + 1, end).joinToString("\n").trim()
+}
+
+// mod-publish-plugin is bundled (and pinned to 0.8.4) by Modstitch, so it is applied here rather than in plugins {}
+apply(plugin = "me.modmuss50.mod-publish-plugin")
+
+configure<me.modmuss50.mpp.ModPublishExtension> {
+    file.set(modstitch.finalJarTask.flatMap { it.archiveFile })
+    displayName.set("Friends For Life $releaseVersion ($minecraft ${if (loader == "neoforge") "NeoForge" else "Fabric"})")
+    version.set("$releaseVersion+${project.name}")
+    changelog.set(providers.provider { latestChangelog() })
+    type.set(
+        when ((findProperty("publish.release_type") as String?) ?: "beta") {
+            "release" -> STABLE
+            "alpha" -> ALPHA
+            else -> BETA
+        }
+    )
+    modLoaders.add(loader)
+    dryRun.set(publishDryRun)
+
+    modrinth {
+        projectId.set(modrinthId)
+        accessToken.set(providers.environmentVariable("MODRINTH_TOKEN"))
+        minecraftVersions.addAll(publishMcVersions)
+        requires("owo-lib")
+        if (loader == "fabric") requires("fabric-api")
+    }
+
+    curseforge {
+        projectId.set(curseforgeId)
+        accessToken.set(providers.environmentVariable("CURSEFORGE_TOKEN"))
+        minecraftVersions.addAll(publishMcVersions)
+        clientRequired.set(true)
+        serverRequired.set(true)
+        requires("owo-lib")
+        if (loader == "fabric") requires("fabric-api")
+    }
+}
+
+// Fail before uploading anything if the IDs or tokens are missing (skipped for dry runs).
+val publishRequirements = mapOf(
+    "publishModrinth" to listOf(
+        "publish.modrinth_id in gradle.properties" to { modrinthId.isNotBlank() },
+        "MODRINTH_TOKEN environment variable" to { !System.getenv("MODRINTH_TOKEN").isNullOrBlank() },
+    ),
+    "publishCurseforge" to listOf(
+        "publish.curseforge_id in gradle.properties" to { curseforgeId.isNotBlank() },
+        "CURSEFORGE_TOKEN environment variable" to { !System.getenv("CURSEFORGE_TOKEN").isNullOrBlank() },
+    ),
+)
+tasks.matching { it.name in publishRequirements }.configureEach {
+    val requirements = publishRequirements.getValue(name)
+    doFirst {
+        if (publishDryRun) return@doFirst
+        val missing = requirements.filterNot { it.second() }.map { it.first }
+        if (missing.isNotEmpty()) throw GradleException("Can't run $name, missing: ${missing.joinToString()}")
     }
 }

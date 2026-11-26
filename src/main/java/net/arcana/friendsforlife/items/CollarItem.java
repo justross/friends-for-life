@@ -5,7 +5,6 @@ import net.arcana.friendsforlife.util.CompatItemStack;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 
@@ -68,10 +67,10 @@ public class CollarItem extends Item {
     }
 
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+    protected boolean compatUse(Level world, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        if (!world.isClientSide) {
+        if (!world.isClientSide()) {
             if (player.isShiftKeyDown()) {
                 ResourceKey<Level> dim = player.level().dimension();
 
@@ -117,11 +116,11 @@ public class CollarItem extends Item {
             }
         }
 
-        return InteractionResultHolder.success(stack);
+        return true;
     }
 
     public InteractionResult applyCollar(ItemStack item, ServerPlayer user, Entity entity) {
-        var tracker = PetTracker.get(user.getServer());
+        var tracker = PetTracker.get(user.level().getServer());
         // tell server to track the pet
         PetData pd = tracker.addPet(entity, user, item, Instant.now().toEpochMilli());
         if (pd == null) {
@@ -212,7 +211,12 @@ public class CollarItem extends Item {
                     .append(Component.literal(pos.getX() + ", " + pos.getY() + ", " + pos.getZ())
                             .withStyle(ChatFormatting.AQUA)));
         }
-        if (!Screen.hasShiftDown()) {
+        //? if >=1.21.10 {
+        /*boolean shiftDown = Minecraft.getInstance().hasShiftDown();
+        *///?} else {
+        boolean shiftDown = Screen.hasShiftDown();
+        //?}
+        if (!shiftDown) {
             tooltip.add(
                     Component.translatable("tooltip.friendsforlife.more_info")
                             .withStyle(ChatFormatting.GRAY));

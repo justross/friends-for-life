@@ -3,11 +3,12 @@ package net.arcana.friendsforlife.petdatabase;
 import net.arcana.friendsforlife.*;
 import net.arcana.friendsforlife.accessors.ShoulderAccessor;
 import net.arcana.friendsforlife.accessors.TrackableEntityDecorator;
-import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.homeblock.HomeBlock.HomeEntry;
 import net.arcana.friendsforlife.packets.PetDataUpdatePacket;
 import net.arcana.friendsforlife.packets.PetDownedUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatConfig;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.NBTCodec;
 import net.minecraft.core.BlockPos;
@@ -92,9 +93,7 @@ public class PetData {
 
     public boolean canEntityFight() {
         assert this.entityData != null;
-        var entityTypeString = this.entityData.getString("id");
-        ResourceLocation rl = new CompatResourceLocation(entityTypeString).unwrap();
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(rl);
+        EntityType<?> type = CompatNbt.entityType(CompatNbt.getString(this.entityData, "id"));
 
         return !type.is(Tags.PET_ALWAYS_PASSIVE);
     }
@@ -141,8 +140,7 @@ public class PetData {
         this.OwnerName = player.getScoreboardName();
         this.ownerUuid = player.getUUID();
         this.collar = collarItem;
-        this.entityData = new CompoundTag();
-        entity.save(this.entityData);
+        this.entityData = CompatNbt.saveEntity(entity);
         this.entityData.putString("EntityType", String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())));
         trySetMode(FollowMode.COMPANION, entity);
         this.modes = getModes();
@@ -198,7 +196,7 @@ public class PetData {
     public Entry toEntry() {
         return Entry.of(
                 this.uuid,
-                this.getEntityData().getString("id"),
+                CompatNbt.getString(this.getEntityData(), "id"),
                 this.getEntityData(),
                 this.position.toShortString(),
                 this.homePosition != null ? this.homePosition.asLong() : 0L,
@@ -217,9 +215,9 @@ public class PetData {
 
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
-        tag.putUUID("FriendsForLifeEntityUUID", uuid);
+        CompatNbt.putUUID(tag, "FriendsForLifeEntityUUID", uuid);
 
-        tag.putUUID("OwnerUuid", ownerUuid);
+        CompatNbt.putUUID(tag, "OwnerUuid", ownerUuid);
         tag.putString("OwnerName", OwnerName);
         tag.put("collarItem", collar);
 
@@ -248,30 +246,33 @@ public class PetData {
             return null;
         }
 
-        UUID friendsforlife_uuid = tag.getUUID("FriendsForLifeEntityUUID");
+        UUID friendsforlife_uuid = CompatNbt.getUUID(tag, "FriendsForLifeEntityUUID");
+        if (friendsforlife_uuid == null) {
+            return null;
+        }
 
-        UUID OwnerUuid = tag.getUUID("OwnerUuid");
-        String OwnerName = tag.getString("OwnerName");
-        CompoundTag collarItem = tag.getCompound("collarItem");
+        UUID OwnerUuid = CompatNbt.getUUID(tag, "OwnerUuid");
+        String OwnerName = CompatNbt.getString(tag, "OwnerName");
+        CompoundTag collarItem = CompatNbt.getCompound(tag, "collarItem");
 
-        BlockPos pos = new BlockPos(tag.getInt("x"), tag.getInt("y"), tag.getInt("z"));
+        BlockPos pos = new BlockPos(CompatNbt.getInt(tag, "x"), CompatNbt.getInt(tag, "y"), CompatNbt.getInt(tag, "z"));
 
-        long tameDate = tag.getLong("tameDate");
+        long tameDate = CompatNbt.getLong(tag, "tameDate");
 
-        BlockPos homePos = tag.contains("homePos") ? net.minecraft.core.BlockPos.of(tag.getLong("homePos")) : null;
-        ResourceKey<Level> homeDim = tag.contains("homeDim") && !tag.getString("homeDim").isEmpty()
-                ? ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(tag.getString("homeDim")).unwrap())
+        BlockPos homePos = tag.contains("homePos") ? net.minecraft.core.BlockPos.of(CompatNbt.getLong(tag, "homePos")) : null;
+        ResourceKey<Level> homeDim = tag.contains("homeDim") && !CompatNbt.getString(tag, "homeDim").isEmpty()
+                ? ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(CompatNbt.getString(tag, "homeDim")).unwrap())
                 : null;
 
-        CompoundTag entityData = tag.contains("EntityData") ? tag.getCompound("EntityData") : null;
-        String followModeStr = tag.getString("FollowMode");
+        CompoundTag entityData = tag.contains("EntityData") ? CompatNbt.getCompound(tag, "EntityData") : null;
+        String followModeStr = CompatNbt.getString(tag, "FollowMode");
         FollowMode mode;
         if (followModeStr.isEmpty()) {
             mode = FollowMode.COMPANION;
         } else {
             mode = FollowMode.valueOf(followModeStr);
         }
-        boolean isDowned = tag.getBoolean("IsDowned");
+        boolean isDowned = CompatNbt.getBoolean(tag, "IsDowned");
 
         return new PetData(friendsforlife_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim,
                 entityData, isDowned, mode);
@@ -295,11 +296,18 @@ public class PetData {
         }
     }
 
+    /**
+     * Re-snapshots the entity's current state into the stored entity data.
+     */
+    public void updateEntityData(MinecraftServer server, Entity entity) {
+        updateEntityData(server, tag -> tag.merge(CompatNbt.saveEntityWithoutId(entity)));
+    }
+
     @Nullable
-    public HomeBlockHandle getHomeBlock() {
+    public HomeEntry getHomeBlock() {
         if (homePosition == null || homeDimension == null)
             return null;
-        return new HomeBlockHandle(homePosition, homeDimension);
+        return new HomeEntry(homePosition, homeDimension);
     }
 
     /**
@@ -369,8 +377,8 @@ public class PetData {
         if (server == null || entityData == null)
             return null;
 
-        String typeId = entityData.getString("id");
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(typeId).unwrap());
+        String typeId = CompatNbt.getString(entityData, "id");
+        EntityType<?> type = CompatNbt.entityType(typeId);
         UUID oldUuid = entityUuid;
 
         // Discard entity if it exists
@@ -385,7 +393,7 @@ public class PetData {
             });
         }
 
-        Entity entity = type.create(server.getLevel(worldKey));
+        Entity entity = CompatNbt.createEntity(type, server.getLevel(worldKey));
         if (!(entity instanceof LivingEntity livingEntity))
             return null;
 
@@ -395,12 +403,12 @@ public class PetData {
             CompoundTag left = player.getShoulderEntityLeft();
             CompoundTag right = player.getShoulderEntityRight();
 
-            if (!left.isEmpty() && left.hasUUID("UUID") && left.getUUID("UUID").equals(entityUuid)) {
-                ((ShoulderAccessor) player).friendsforlife_clearShoulder(entityUuid);
+            if (!left.isEmpty() && CompatNbt.hasUUID(left, "UUID") && CompatNbt.getUUID(left, "UUID").equals(entityUuid)) {
+                ((ShoulderAccessor) player).friendsforlife_clearShoulder(true);
             }
 
-            if (!right.isEmpty() && right.hasUUID("UUID") && right.getUUID("UUID").equals(entityUuid)) {
-                ((ShoulderAccessor) player).friendsforlife_clearShoulder(entityUuid);
+            if (!right.isEmpty() && CompatNbt.hasUUID(right, "UUID") && CompatNbt.getUUID(right, "UUID").equals(entityUuid)) {
+                ((ShoulderAccessor) player).friendsforlife_clearShoulder(false);
             }
         }
 
@@ -414,7 +422,7 @@ public class PetData {
         CompoundTag nbtCopy = entityData.copy();
 
         entityUuid = UUID.randomUUID();
-        nbtCopy.putUUID("UUID", entityUuid);
+        CompatNbt.putUUID(nbtCopy, "UUID", entityUuid);
         nbtCopy.remove("Pos");
         nbtCopy.remove("Motion");
         nbtCopy.remove("Rotation");
@@ -436,18 +444,18 @@ public class PetData {
         nbtCopy.remove("Brain");
         nbtCopy.remove("Pose");
 
-        if (nbtCopy.getFloat("Health") <= 0) {
+        if (CompatNbt.getFloat(nbtCopy, "Health") <= 0) {
             nbtCopy.putFloat("Health", livingEntity.getMaxHealth());
         }
 
-        entity.load(nbtCopy);
+        CompatNbt.loadEntity(entity, nbtCopy);
         entityData = nbtCopy;
 
         entity.setPos(x, y, z);
 
         Objects.requireNonNull(server.getLevel(worldKey)).addFreshEntity(entity);
 
-        entity.moveTo(x, y, z, entity.getYRot(), entity.getXRot());
+        CompatNbt.moveTo(entity, x, y, z, entity.getYRot(), entity.getXRot());
 
         if (hasLeash) {
             ItemEntity leash = new ItemEntity(
@@ -497,30 +505,21 @@ public class PetData {
 
     private boolean entityDataMatchesShoulder(CompoundTag shoulderNbt, CompoundTag savedEntityData) {
         // Compare type
-        String shoulderId = shoulderNbt.getString("id");
-        String savedId = savedEntityData.getString("id");
+        String shoulderId = CompatNbt.getString(shoulderNbt, "id");
+        String savedId = CompatNbt.getString(savedEntityData, "id");
         if (!shoulderId.equals(savedId))
             return false;
 
         // Compare variant (for parrots)
         if (shoulderId.equals("minecraft:parrot")) {
-            int shoulderVariant = shoulderNbt.getInt("Variant");
-            int savedVariant = savedEntityData.getInt("Variant");
+            int shoulderVariant = CompatNbt.getInt(shoulderNbt, "Variant");
+            int savedVariant = CompatNbt.getInt(savedEntityData, "Variant");
             if (shoulderVariant != savedVariant)
                 return false;
         }
 
         // Compare custom customName if present
-        boolean shoulderHasName = shoulderNbt.contains("CustomName");
-        boolean savedHasName = savedEntityData.contains("CustomName");
-
-        if (shoulderHasName && savedHasName) {
-            String shoulderName = Objects.requireNonNull(CompatComponent.fromJson(shoulderNbt.getString("CustomName"))).getString();
-            String savedName = Objects.requireNonNull(CompatComponent.fromJson(savedEntityData.getString("CustomName"))).getString();
-            return shoulderName.equals(savedName);
-        }
-
-        return !shoulderHasName && !savedHasName;
+        return Objects.equals(CompatNbt.getCustomName(shoulderNbt), CompatNbt.getCustomName(savedEntityData));
     }
 
 }

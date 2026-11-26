@@ -24,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.joml.Matrix4f;
 
 public class HomeBlockRenderer {
 
@@ -84,8 +85,13 @@ public class HomeBlockRenderer {
             }
             matrices.pushPose();
 
+            //? if <1.21.10 {
+
+
             RenderSystem.enablePolygonOffset();
             RenderSystem.polygonOffset(1f, -10f);
+ 
+            //?}
 
             matrices.translate(
                     homeBlock.getX() - camera.getPosition().x,
@@ -104,6 +110,20 @@ public class HomeBlockRenderer {
 
             VoxelShape shape = Shapes.block();
 
+            //? if >=1.21.10 {
+            /*PoseStack.Pose pose = matrices.last();
+            Matrix4f matrix = pose.pose();
+
+            shape.forAllEdges((x1, y1, z1, x2, y2, z2) -> {
+                buffer.addVertex(matrix, (float) x1, (float) y1, (float) z1)
+                        .setNormal(0, 0, 0)
+                        .setColor(r, g, b, 1.0f);
+
+                buffer.addVertex(matrix, (float) x2, (float) y2, (float) z2)
+                        .setNormal(0, 0, 0)
+                        .setColor(r, g, b, 1.0f);
+            });
+            *///?} else {
             LevelRenderer.renderVoxelShape(
                     matrices,
                     buffer,
@@ -113,8 +133,14 @@ public class HomeBlockRenderer {
                     1.0f,
                     false
             );
+            //?}
+
+            //? if <1.21.10 {
+            
             RenderSystem.polygonOffset(0f, 0f);
             RenderSystem.disablePolygonOffset();
+             
+            //?}
 
             matrices.popPose();
             client.renderBuffers().bufferSource().endBatch();

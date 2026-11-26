@@ -6,6 +6,7 @@ import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.PetListPacket;
 import net.arcana.friendsforlife.util.CompatComponent;
 import net.arcana.friendsforlife.util.CompatItemStack;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.SavedData;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,6 +22,10 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+
+//? if >=1.21.10 {
+/*import net.minecraft.world.level.saveddata.SavedDataType;
+*///?}
 
 public class PetTracker extends SavedData {
     private final Map<UUID, PetData> tracked = new HashMap<>();
@@ -38,7 +43,7 @@ public class PetTracker extends SavedData {
              //?}
             PetData pd = new PetData(entity, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
-            Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
+            Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.level().getServer()));
             return pd;
         }
         return null;
@@ -56,7 +61,7 @@ public class PetTracker extends SavedData {
             return;
         }
         var petList = PetTracker.toEntries(server);
-        Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
+        Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.level().getServer()));
     }
 
     public Map<UUID, PetData> getTrackedMap() {
@@ -71,8 +76,18 @@ public class PetTracker extends SavedData {
         return recreated;
     }
 
+    private static final String KEY = "friends_for_life_tracked_pets";
+
+    //? if >=1.21.10 {
+    /*private static final SavedDataType<PetTracker> TYPE = SavedData.nbtType(KEY, PetTracker::new, PetTracker::fromNBT);
+    *///?}
+
     public static PetTracker get(MinecraftServer server) {
-        return SavedData.get(server, "friends_for_life_tracked_pets", PetTracker::fromNBT, PetTracker::new);
+        //? if >=1.21.10 {
+        /*return SavedData.get(server, TYPE);
+        *///?} else {
+        return SavedData.get(server, KEY, PetTracker::fromNBT, PetTracker::new);
+        //?}
     }
 
     public PetData get(UUID uuid) {
@@ -88,7 +103,7 @@ public class PetTracker extends SavedData {
     }
 
     public static List<PetData> getAllForPlayer(Player player) {
-        return PetTracker.get(player.getServer()).tracked.values().stream()
+        return PetTracker.get(player.level().getServer()).tracked.values().stream()
                 .filter(pet -> pet.ownerUuid.equals(player.getUUID()))
                 .toList();
     }
@@ -140,7 +155,7 @@ public class PetTracker extends SavedData {
                 continue;
             }
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("uuid", uuid);
+            CompatNbt.putUUID(tag, "uuid", uuid);
             recreatedList.add(tag);
         }
         nbt.put("recreatedPets", recreatedList);
@@ -150,7 +165,7 @@ public class PetTracker extends SavedData {
         PetTracker tracker = new PetTracker();
 
         // load pets
-        ListTag petList = nbt.getList("pets", Tag.TAG_COMPOUND);
+        ListTag petList = CompatNbt.getCompoundList(nbt, "pets");
         for (Tag e : petList) {
             PetData data = PetData.fromNbt((CompoundTag) e);
             if (data != null) {
@@ -159,11 +174,12 @@ public class PetTracker extends SavedData {
         }
 
         // load recreated UUIDs
-        ListTag recreatedList = nbt.getList("recreatedPets", Tag.TAG_COMPOUND);
+        ListTag recreatedList = CompatNbt.getCompoundList(nbt, "recreatedPets");
         for (Tag e : recreatedList) {
             CompoundTag tag = (CompoundTag) e;
-            if (tag.hasUUID("uuid")) {
-                tracker.recreated.add(tag.getUUID("uuid"));
+            UUID recreatedUuid = CompatNbt.getUUID(tag, "uuid");
+            if (recreatedUuid != null) {
+                tracker.recreated.add(recreatedUuid);
             }
         }
 
@@ -180,21 +196,20 @@ public class PetTracker extends SavedData {
     private static void writeEntityData(FriendlyByteBuf out, Entity entity, @Nullable CompoundTag nbt) {
         if (entity != null) {
             out.writeUtf(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
-            CompoundTag entityNbt = new CompoundTag();
-            entity.save(entityNbt);
-            out.writeNbt(entityNbt);
+            out.writeNbt(CompatNbt.saveEntity(entity));
 
             String name = entity.hasCustomName()
                     ? Objects.requireNonNull(entity.getCustomName()).getString()
                     : entity.getType().getDescription().getString();
             out.writeUtf(name);
         } else if (nbt != null) {
-            out.writeUtf(nbt.getString("id"));
+            out.writeUtf(CompatNbt.getString(nbt, "id"));
             out.writeNbt(nbt);
 
-            String name = nbt.contains("CustomName")
-                    ? Objects.requireNonNull(CompatComponent.fromJson(nbt.getString("CustomName"))).getString()
-                    : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
+            String customName = CompatNbt.getCustomName(nbt);
+            String name = customName != null
+                    ? customName
+                    : CompatNbt.entityType(CompatNbt.getString(nbt, "id")).getDescription().getString();
             out.writeUtf(name);
         }
     }

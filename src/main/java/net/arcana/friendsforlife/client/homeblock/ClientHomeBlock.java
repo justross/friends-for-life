@@ -5,12 +5,15 @@ import net.arcana.friendsforlife.packets.HomeRequestPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class ClientHomeBlock {
 
     private static final List<Runnable> listeners = new ArrayList<>();
+    @Nullable
     private static BlockPos blockPos;
     private static ResourceKey<Level> dimension;
 

@@ -2,6 +2,7 @@ package net.arcana.friendsforlife.client.petdatabase;
 
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.util.CompatComponent;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
@@ -26,8 +27,10 @@ public class ClientPetData {
     public String position;
     public CompoundTag entityData;
     public final EntityType<?> type;
-    @Nullable public BlockPos homePosition;
-    @Nullable public ResourceLocation homeDimension;
+    @Nullable
+    public BlockPos homePosition;
+    @Nullable
+    public ResourceLocation homeDimension;
     public PetData.FollowMode mode;
     public List<PetData.FollowMode> modes;
     public boolean isDowned;
@@ -43,7 +46,7 @@ public class ClientPetData {
         this.isDowned = isDowned;
         this.mode = mode;
         this.modes = modes;
-        this.type = BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(entityType).unwrap());
+        this.type = CompatNbt.entityType(entityType);
     }
 
     public static ClientPetData fromEntry(PetData.Entry entry) {
@@ -72,37 +75,27 @@ public class ClientPetData {
 
     // Do not call on network thread
     public LivingEntity getRenderingEntity(Level world) {
-        LivingEntity entity = (LivingEntity) type.create(world);
+        LivingEntity entity = (LivingEntity) CompatNbt.createEntity(type, world);
         if (entity != null) {
-            entity.load(entityData);
+            CompatNbt.loadEntity(entity, entityData);
         }
         return entity;
     }
 
     @Nullable
     public UUID getOwnerUuid() {
-        if (this.entityData.contains("Owner")) {
-            return this.entityData.getUUID("Owner");
-        } else {
-            return new UUID(0L, 0L);
-        }
+        return CompatNbt.getUUID(this.entityData, "Owner");
     }
 
     public String getName() {
         Objects.requireNonNull(entityData);
-        if (entityData.contains("CustomName")) {
-            HolderLookup.Provider provider =
-                    Minecraft.getInstance().level != null
-                            ? Minecraft.getInstance().level.registryAccess()
-                            : HolderLookup.Provider.create(Stream.empty());
-            return Objects.requireNonNull(CompatComponent.fromJson(entityData.getString("CustomName"), provider)).getString();
+        String customName = CompatNbt.getCustomName(entityData);
+        if (customName != null) {
+            return customName;
         }
 
         if (entityData.contains("EntityType")) {
-            String typeKey = entityData.getString("EntityType");
-            ResourceLocation id = new CompatResourceLocation(typeKey).unwrap();
-
-            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(id);
+            EntityType<?> type = CompatNbt.entityType(CompatNbt.getString(entityData, "EntityType"));
             return I18n.get(type.getDescriptionId());
         }
 

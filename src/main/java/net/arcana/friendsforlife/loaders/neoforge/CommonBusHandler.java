@@ -11,6 +11,7 @@ import net.arcana.friendsforlife.petdatabase.PetWatcher;
 import net.arcana.friendsforlife.util.ServerContext;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
@@ -37,13 +38,10 @@ public class CommonBusHandler {
         Entity entity = event.getTarget();
 
         var result = EventHandler.handleEntityUse(player, world, hand, entity);
-        switch (result) {
-            case PASS -> {
-            }
-            default -> {
-                event.setCanceled(true);
-                event.setCancellationResult(result);
-            }
+        // InteractionResult is a sealed interface since 1.21.2, so compare instead of switching
+        if (result != InteractionResult.PASS) {
+            event.setCanceled(true);
+            event.setCancellationResult(result);
         }
     }
 

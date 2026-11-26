@@ -1,49 +1,68 @@
 package net.arcana.friendsforlife.homeblock;
 
-import net.arcana.friendsforlife.Init;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.HomeUpdatePacket;
+import net.arcana.friendsforlife.petdatabase.PetTracker;
+import net.arcana.friendsforlife.Init;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.arcana.friendsforlife.util.SavedData;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+//? if >=1.21.10 {
+/*import net.minecraft.world.level.saveddata.SavedDataType;
+*///?}
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class HomeBlock extends SavedData {
-    public record HomeBlockHandle(BlockPos pos, ResourceKey<Level> dim) {
-    };
+    public record HomeEntry(BlockPos pos, ResourceKey<Level> dim) {
+    }
 
-    private final Map<UUID, HomeBlockHandle> playerHomes = new HashMap<>();
+    private final Map<UUID, HomeEntry> playerHomes = new HashMap<>();
     public static final String KEY = "friendsforlife_home_blocks";
 
     // --- Access ---
     public static HomeBlock get(MinecraftServer server) {
+        //? if >=1.21.10 {
+        /*return SavedData.get(server, TYPE);
+        *///?} else {
         return SavedData.get(server, KEY, HomeBlock::fromNbt, HomeBlock::new);
+         //?}
     }
+
+    //? if >=1.21.10 {
+    /*private static final SavedDataType<HomeBlock> TYPE = SavedData.nbtType(KEY, HomeBlock::new, HomeBlock::fromNbt);
+    *///?}
 
     public static HomeBlock fromNbt(CompoundTag nbt) {
         HomeBlock state = new HomeBlock();
-        CompoundTag homes = nbt.getCompound("Homes");
-        for (String key : homes.getAllKeys()) {
+        CompoundTag homes = CompatNbt.getCompound(nbt, "Homes");
+        for (String key : CompatNbt.keys(homes)) {
             try {
                 UUID uuid = UUID.fromString(key);
-                CompoundTag posTag = homes.getCompound(key);
+                CompoundTag posTag = CompatNbt.getCompound(homes, key);
                 BlockPos pos = new BlockPos(
-                        posTag.getInt("x"),
-                        posTag.getInt("y"),
-                        posTag.getInt("z"));
-                String dimStr = posTag.getString("dimension");
+                        CompatNbt.getInt(posTag, "x"),
+                        CompatNbt.getInt(posTag, "y"),
+                        CompatNbt.getInt(posTag, "z"));
+                String dimStr = CompatNbt.getString(posTag, "dimension");
                 ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new CompatResourceLocation(dimStr).unwrap());
-                state.playerHomes.put(uuid, new HomeBlockHandle(pos, dim));
+                state.playerHomes.put(uuid, new HomeEntry(pos, dim));
             } catch (Exception e) {
                 Init.LOGGER.error("Skipped invalid home entry: {}", key);
             }
@@ -51,10 +70,11 @@ public class HomeBlock extends SavedData {
         return state;
     }
 
+
     @Override
     public void write(CompoundTag nbt) {
         CompoundTag homes = new CompoundTag();
-        for (Map.Entry<UUID, HomeBlockHandle> e : playerHomes.entrySet()) {
+        for (Map.Entry<UUID, HomeEntry> e : playerHomes.entrySet()) {
             BlockPos pos = e.getValue().pos();
             ResourceKey<Level> dim = e.getValue().dim();
             CompoundTag tag = new CompoundTag();
@@ -69,7 +89,7 @@ public class HomeBlock extends SavedData {
 
     // --- API ---
     public void setHome(ServerPlayer player, BlockPos pos, ResourceKey<Level> dim) {
-        playerHomes.put(player.getUUID(), new HomeBlockHandle(pos, dim));
+        playerHomes.put(player.getUUID(), new HomeEntry(pos, dim));
 
         Net.CHANNEL.serverHandle(player).send(new HomeUpdatePacket(pos, dim.location()));
 
@@ -77,17 +97,26 @@ public class HomeBlock extends SavedData {
     }
 
     @Nullable
-    public HomeBlockHandle getHome(MinecraftServer server, UUID playerUuid) {
+    public HomeBlock.HomeEntry getHome(MinecraftServer server, UUID playerUuid) {
         var home = playerHomes.get(playerUuid);
         if (home == null) {
             var player = server.getPlayerList().getPlayer(playerUuid);
             if (player != null) {
-                home = new HomeBlockHandle(player.getRespawnPosition(), player.getRespawnDimension());
+                //? if >=1.21.10 {
+                /*var respawn = player.getRespawnConfig() != null ?
+                        player.getRespawnConfig().respawnData() : server.overworld().getRespawnData();
+                home = new HomeEntry(respawn.pos(), respawn.dimension());
+                return home;
+                *///?} else {
+                home = new HomeEntry(player.getRespawnPosition(), player.getRespawnDimension());
+                 //?}
             }
         }
+        //? if <1.21.10 {
         if (home != null && home.pos() == null) {
-            home = new HomeBlockHandle(server.overworld().getSharedSpawnPos(), server.overworld().dimension());
+            home = new HomeEntry(server.overworld().getSharedSpawnPos(), server.overworld().dimension());
         }
+        //?}
         return home;
     }
 

@@ -22,6 +22,7 @@ import net.arcana.friendsforlife.packets.PetListRequestPacket;
 import net.arcana.friendsforlife.packets.PetTeleportRequestPacket;
 import net.arcana.friendsforlife.packets.SetPetModePacket;
 import net.arcana.friendsforlife.petdatabase.PetData;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -296,8 +297,15 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
         if (entityBoxContainer != null) {
             entityBoxContainer.removeChild(entityBox);
         }
+        //? if >=1.21.10 {
+        /*var newEntityBox = new RosterEntityComponent(Sizing.fixed(50), (EntityType<Entity>) newPet.type,
+                CompatNbt.saveEntityWithoutId(newPet.getRenderingEntity(Minecraft.getInstance().level)));
+        *///?} else {
+        
         var newEntityBox = Components.entity(Sizing.fixed(50), (EntityType<Entity>) newPet.type,
                 newPet.getRenderingEntity(Minecraft.getInstance().level).saveWithoutId(new CompoundTag()));
+         
+        //?}
         entityBox = newEntityBox;
         entityBoxContainer.child(entityBox);
         newEntityBox.lookAtCursor(true);
@@ -378,6 +386,19 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
                     .horizontalSizing(Sizing.fill(100))
                     .margins(Insets.vertical(2));
 
+            //? if >=1.21.10 {
+            /*label.mouseDown().subscribe((click, doubled) -> {
+                if (click.button() == 0) {
+                    updateCurrentPet(pet);
+                    Minecraft.getInstance().getSoundManager().play(
+                            SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    return true;
+                }
+                return false;
+            });
+            *///?} else {
+            
+
             label.mouseDown().subscribe((mouseX, mouseY, button) -> {
                 if (button == 0) {
                     updateCurrentPet(pet);
@@ -387,6 +408,10 @@ public class RosterScreen extends BaseUIModelScreen<StackLayout> {
                 }
                 return false;
             });
+             
+
+            //?}
+
 
             label.mouseEnter().subscribe(() -> {
                 label.color(hoverText);

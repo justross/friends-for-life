@@ -20,6 +20,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.UUID;
 
+//? if >=1.21.10 {
+/*import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+*///?}
+
 @Mixin(AbstractHorse.class)
 public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
     @Unique
@@ -82,14 +88,19 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
         if (server != null) {
         PetData trackedPetData = PetTracker.get(server).getByEntityId(self.getUUID());
             if (trackedPetData != null) {
-                trackedPetData.updateEntityData(server, self::saveWithoutId);
+                trackedPetData.updateEntityData(server, self);
             }
         }
     }
 
 
-    //? if >=1.21.1 {
-
+    //? if >=1.21.10 {
+    /*// Saddles are an equipment slot since 1.21.5; LivingEntityMixin snapshots on SADDLE slot changes.
+    @Inject(method = "equipBodyArmor", at = @At("TAIL"))
+    private void equipBodyArmor(Player player, ItemStack itemStack, CallbackInfo ci) {
+        updateEntityData();
+    }
+    *///?} else if >=1.21.1 {
     /*@Inject(method = "equipSaddle", at = @At("TAIL"))
     private void onSaddle(ItemStack itemStack, @Nullable SoundSource soundSourcy, CallbackInfo ci) {
         updateEntityData();
@@ -99,7 +110,6 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
     private void equipBodyArmor(Player player, ItemStack itemStack, CallbackInfo ci) {
         updateEntityData();
     }
-
     *///?} else {
     @Inject(method = "equipArmor", at = @At("TAIL"))
     private void equipArmor(Player player, ItemStack itemStack, CallbackInfo ci) {
@@ -110,7 +120,6 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
     private void onSaddle(@Nullable SoundSource soundSourcy, CallbackInfo ci) {
         updateEntityData();
     }
-    
     //?}
 
 //    @Inject(method = "containerChanged", at = @At("TAIL"))
@@ -118,6 +127,21 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
 //        updateEntityData();
 //    }
 
+    //? if >=1.21.10 {
+    /*@Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
+    private void writeStateToNbt(ValueOutput output, CallbackInfo ci) {
+        // UUIDUtil.CODEC writes the same int array as the pre-1.21.5 putUUID, so old saves still load
+        output.store(PET_UUID, UUIDUtil.CODEC, this.friendsforlife_getUuid());
+        output.putBoolean(IS_DOWNED, this.friendsforlife_getDowned());
+    }
+
+    @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
+    private void readStateFromNbt(ValueInput input, CallbackInfo ci) {
+        input.read(PET_UUID, UUIDUtil.CODEC).ifPresent(this::friendsforlife_setUuid);
+        input.getInt(FOLLOW_MODE).ifPresent(id -> this.friendsforlife_setMode(PetData.FollowMode.fromId(id)));
+        this.friendsforlife_setDowned(input.getBooleanOr(IS_DOWNED, false));
+    }
+    *///?} else {
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void writeStateToNbt(CompoundTag nbt, CallbackInfo ci) {
         nbt.putUUID(PET_UUID, this.friendsforlife_getUuid());
@@ -139,5 +163,6 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
             this.friendsforlife_setDowned(isDowned);
         }
     }
+    //?}
 
 }

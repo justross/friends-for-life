@@ -21,7 +21,7 @@ public abstract class AbstractChestedHorseMixin {
         if (server != null) {
             PetData trackedPetData = PetTracker.get(server).getByEntityId(self.getUUID());
             if (trackedPetData != null) {
-                trackedPetData.updateEntityData(server, self::saveWithoutId);
+                trackedPetData.updateEntityData(server, self);
             }
         }
     }

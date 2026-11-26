@@ -29,13 +29,13 @@ public class EventHandler {
     // cause dogs are annoying and return from a interaction early, we have to
     // overwrite nbt methods
     public static InteractionResult handleEntityUse(Player player, Level world, InteractionHand hand, Entity entity) {
-        if (world.isClientSide) return InteractionResult.PASS;
+        if (world.isClientSide()) return InteractionResult.PASS;
 
         if (entity instanceof TamableAnimal tame) {
             if (!tame.isOwnedBy(player)) return InteractionResult.PASS;
 
             ItemStack stack = player.getItemInHand(hand);
-            PetTracker tracker = PetTracker.get(player.getServer());
+            PetTracker tracker = PetTracker.get(player.level().getServer());
             PetData pd = tracker.get(((TameableEntityDecorator) tame).friendsforlife_getUuid());
             // Play heart particle when set to sit. if the player is removing the collar, don't 😭
             if (pd != null && !(stack.isEmpty() && player.isShiftKeyDown())) {
@@ -68,9 +68,14 @@ public class EventHandler {
             }
 
         } else if (entity instanceof AbstractHorse horse) {
-            if (Objects.equals(horse.getOwnerUUID(), player.getUUID())) {
+            //? if >=1.21.10 {
+            /*UUID horseOwner = horse.getOwnerReference() != null ? horse.getOwnerReference().getUUID() : null;
+            *///?} else {
+            UUID horseOwner = horse.getOwnerUUID();
+            //?}
+            if (Objects.equals(horseOwner, player.getUUID())) {
                 ItemStack stack = player.getItemInHand(hand);
-                PetTracker tracker = PetTracker.get(player.getServer());
+                PetTracker tracker = PetTracker.get(player.level().getServer());
                 PetData pd = tracker.get(((TrackableEntityDecorator) horse).friendsforlife_getUuid());
                 // Play heart particle when set to sit. if the player is removing the collar, don't 😭
                 if (pd != null && !(stack.isEmpty() && player.isShiftKeyDown())) {
@@ -108,11 +113,11 @@ public class EventHandler {
 
 
     public static void handleEntityUnload(Entity entity, Level world) {
-        if (entity instanceof TrackableEntityDecorator trackable && trackable.friendsforlife_getUuid() != null && !world.isClientSide) {
+        if (entity instanceof TrackableEntityDecorator trackable && trackable.friendsforlife_getUuid() != null && !world.isClientSide()) {
             PetTracker tracker = PetTracker.get(world.getServer());
             PetData pd = tracker.get(trackable.friendsforlife_getUuid());
             if (pd != null) {
-                pd.updateEntityData(world.getServer(), entity::saveWithoutId);
+                pd.updateEntityData(world.getServer(), entity);
             }
         }
     }
@@ -145,6 +150,17 @@ public class EventHandler {
                     trackable.friendsforlife_setDowned(pd.isDowned);
                 }
 
+            }
+        }
+    }
+
+    // Snapshot entity to PetData NBT when unloaded
+    public static void handleEntityUnload(Entity entity, ServerLevel world) {
+        if (entity instanceof TamableAnimal tame && !world.isClientSide()) {
+            PetTracker tracker = PetTracker.get(world.getServer());
+            PetData pd = tracker.getByEntityId(tame.getUUID());
+            if (pd != null) {
+                pd.updateEntityData(world.getServer(), tame);
             }
         }
     }

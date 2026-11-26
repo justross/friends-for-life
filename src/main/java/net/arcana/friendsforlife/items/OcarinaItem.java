@@ -6,7 +6,7 @@ import net.arcana.friendsforlife.client.petdatabase.ClientPetData;
 import net.arcana.friendsforlife.client.petdatabase.ClientPetList;
 import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
-import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.homeblock.HomeBlock.HomeEntry;
 import net.arcana.friendsforlife.packets.PetMissingMessagePacket;
 import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
 import net.arcana.friendsforlife.petdatabase.PetData;
@@ -28,7 +28,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -81,12 +80,12 @@ public class OcarinaItem extends Item {
     }
 
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level world, Player player, @NotNull InteractionHand hand) {
+    protected boolean compatUse(@NotNull Level world, Player player, @NotNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         // --- Check cooldown ---
-        if (!player.getCooldowns().isOnCooldown(this)) {
+        if (!isOnCooldown(player, stack)) {
 
-            if (!world.isClientSide) {
+            if (!world.isClientSide()) {
                 //? if >=1.21 {
 
                 /*String uuidString = stack.getOrDefault(Components.OCARINA_UUID, "");
@@ -133,7 +132,7 @@ public class OcarinaItem extends Item {
                         registry.getPetForOcarina(ocarinaUuid).equals(petData.uuid)) {
 
                     // Get homeblock from pet data, or fall back to default homeblock
-                    HomeBlockHandle hbh = petData.getHomeBlock();
+                    HomeEntry hbh = petData.getHomeBlock();
                     if (hbh == null) {
                         hbh = HomeBlock.get(world.getServer()).getHome(world.getServer(), player.getUUID());
                     }
@@ -170,11 +169,28 @@ public class OcarinaItem extends Item {
                     );
 
                 }
-                player.getCooldowns().addCooldown(this, 45);
+                addCooldown(player, stack, 45);
             }
         }
-        return InteractionResultHolder.success(player.getItemInHand(hand));
+        return true;
 
+    }
+
+    // Item cooldowns are keyed by ItemStack since 1.21.2
+    private boolean isOnCooldown(Player player, ItemStack stack) {
+        //? if >=1.21.10 {
+        /*return player.getCooldowns().isOnCooldown(stack);
+        *///?} else {
+        return player.getCooldowns().isOnCooldown(this);
+        //?}
+    }
+
+    private void addCooldown(Player player, ItemStack stack, int ticks) {
+        //? if >=1.21.10 {
+        /*player.getCooldowns().addCooldown(stack, ticks);
+        *///?} else {
+        player.getCooldowns().addCooldown(this, ticks);
+        //?}
     }
 
     /**
@@ -182,7 +198,7 @@ public class OcarinaItem extends Item {
      */
     public InteractionResult useOcarinaFromPet(Level world, Player player, ItemStack stack, PetData petData,
                                                Entity entity) {
-        if (!player.getCooldowns().isOnCooldown(this)) {
+        if (!isOnCooldown(player, stack)) {
             CompoundTag nbt = CompatItemStack.getOrCreateTag(stack);
             //? if >=1.21 {
             /*String ocarinaUuidString = stack.get(Components.OCARINA_UUID);
@@ -223,7 +239,11 @@ public class OcarinaItem extends Item {
 
                     return InteractionResult.SUCCESS;
                 } else {
+                    //? if >=1.21.10 {
+                    /*return use(world, player, InteractionHand.MAIN_HAND);
+                    *///?} else {
                     return use(world, player, InteractionHand.MAIN_HAND).getResult();
+                    //?}
                 }
             }
         }
@@ -247,7 +267,12 @@ public class OcarinaItem extends Item {
             tooltip.add(Component.literal(name).withStyle(ChatFormatting.AQUA));
         }
 
-        if (Screen.hasShiftDown()) {
+        //? if >=1.21.10 {
+        /*boolean shiftDown = Minecraft.getInstance().hasShiftDown();
+        *///?} else {
+        boolean shiftDown = Screen.hasShiftDown();
+        //?}
+        if (shiftDown) {
             List<FormattedCharSequence> lines = Tooltip.splitTooltip(
                     Minecraft.getInstance(),
                     Component.translatable("tooltip.friendsforlife.ocarina.info"));

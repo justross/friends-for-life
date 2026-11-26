@@ -3,6 +3,7 @@ package net.arcana.friendsforlife.petdatabase;
 import net.arcana.friendsforlife.Net;
 import net.arcana.friendsforlife.packets.PetTrackerUpdatePacket;
 import net.arcana.friendsforlife.util.CompatComponent;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -47,11 +48,11 @@ public class PetWatcher {
                     // --- Name check ---
                     // compare the CustomName stored in pet data NBT with the entity's current custom customName
                     CompoundTag nbtSnapshot = petData.getEntityData();
-                    String oldName = nbtSnapshot.getString("CustomName"); // JSON stored in NBT
-                    String newName = entity.getCustomName() != null ? entity.getCustomName().toString() : "";
+                    String oldName = Objects.requireNonNullElse(CompatNbt.getCustomName(nbtSnapshot), "");
+                    String newName = entity.getCustomName() != null ? entity.getCustomName().getString() : "";
 
                     if (!newName.equals(oldName)) {
-                        petData.updateEntityData(server, entity::saveWithoutId); // overwrite snapshot with current NBT
+                        petData.updateEntityData(server, entity); // overwrite snapshot with current NBT
                         petChanged = true;
                     }
 

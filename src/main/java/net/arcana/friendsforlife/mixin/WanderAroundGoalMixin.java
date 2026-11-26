@@ -2,7 +2,7 @@ package net.arcana.friendsforlife.mixin;
 
 import net.arcana.friendsforlife.accessors.TameableEntityDecorator;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
-import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.homeblock.HomeBlock.HomeEntry;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.minecraft.server.MinecraftServer;
@@ -34,17 +34,25 @@ public abstract class WanderAroundGoalMixin {
             if (pet instanceof TameableEntityDecorator
                     && ((TameableEntityDecorator) pet).friendsforlife_isForceWander()) {
 
-                HomeBlockHandle home = null;
-                PetTracker tracker = PetTracker.get(pet.getServer());
+                HomeEntry home = null;
+                var server = pet.level().getServer();
+                PetTracker tracker = PetTracker.get(server);
                 PetData pd = tracker.getByEntityId(pet.getUUID());
 
                 // Check if pet has its own home, otherwise use default home
-                HomeBlockHandle petHbh = pd != null ? pd.getHomeBlock() : null;
+                HomeEntry petHbh = pd != null ? pd.getHomeBlock() : null;
                 if (petHbh != null && petHbh.pos() != null) {
                     home = petHbh;
                 } else {
-                    HomeBlock homes = HomeBlock.get((MinecraftServer) pet.getServer());
-                    home = homes.getHome(pet.getServer(), (pet.getOwnerUUID()));
+                    HomeBlock homes = HomeBlock.get((MinecraftServer) server);
+                    //? if >=1.21.10 {
+                    /*var ownerUuid = pet.getOwner().getUUID();
+                    *///?} else {
+                    
+                   var ownerUuid = pet.getOwnerUUID();
+                     
+                    //?}
+                    home = homes.getHome(server, ownerUuid);
                 }
 
                 if (home != null) {

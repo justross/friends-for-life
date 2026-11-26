@@ -7,7 +7,7 @@ import net.minecraft.world.entity.Entity;
 
 public class TrackableModeHelper {
     public static void setTrackableMode(PetData.FollowMode mode, Entity entity) {
-        if (entity == null || entity.level().isClientSide)
+        if (entity == null || entity.level().isClientSide())
             return;
         MobEntityAccessor accessor = (MobEntityAccessor) entity;
 

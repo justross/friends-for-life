@@ -1,5 +1,6 @@
 pluginManagement {
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         mavenCentral()
 
@@ -15,9 +16,6 @@ pluginManagement {
         // Stonecutter
         maven("https://maven.kikugie.dev/releases")
         maven("https://maven.kikugie.dev/snapshots")
-
-        // Modstitch
-        maven("https://maven.isxander.dev/releases")
     }
 }
 
@@ -40,7 +38,7 @@ stonecutter {
         // Configure your targets here!
         mc("1.20.1", loaders = listOf("fabric"))
         mc("1.21.1", loaders = listOf("fabric", "neoforge"))
-//        mc("1.21.10", loaders = listOf("fabric"))
+        mc("1.21.10", loaders = listOf("fabric", "neoforge"))
 
         // This is the default target.
         // https://stonecutter.kikugie.dev/stonecutter/guide/setup#settings-settings-gradle-kts

@@ -11,29 +11,46 @@ import org.jetbrains.annotations.Nullable;
 import java.util.stream.Stream;
 
 public class CompatItemStack {
-    /**
-     * Cross-version getTag helper.
-     * Returns null if no tag in pre-1.21, otherwise always returns a tag.
-     */
     @Nullable
     public static CompoundTag getTag(ItemStack stack, HolderLookup.Provider provider) {
-        //? if >=1.21 {
+        //? if >=1.21.10 {
+        /*return ItemStack.CODEC
+                .encodeStart(NbtOps.INSTANCE, stack)
+                .result()
+                .filter(tag -> tag instanceof CompoundTag)
+                .map(tag -> (CompoundTag) tag)
+                .orElse(new CompoundTag());
+        *///?} else if >=1.21 {
         /*return (CompoundTag) stack.save(provider, new CompoundTag());
          *///?} else {
         return stack.hasTag() ? stack.getTag() : null;
-        //?}
+         //?}
     }
 
     @Nullable
     public static CompoundTag getTag(ItemStack stack) {
-        //? if >=1.21 {
+        //? if >=1.21.10 {
+        /*return ItemStack.CODEC
+                .encodeStart(NbtOps.INSTANCE, stack)
+                .result()
+                .filter(tag -> tag instanceof CompoundTag)
+                .map(tag -> (CompoundTag) tag)
+                .orElse(new CompoundTag());
+        *///?} else if >=1.21 {
         /*return (CompoundTag) stack.save(HolderLookup.Provider.create(Stream.empty()), new CompoundTag());
          *///?} else {
         return stack.hasTag() ? stack.getTag() : null;
-        //?}
+         //?}
     }
 
-    //? if >=1.21 {
+    //? if >=1.21.10 {
+    /*public static ItemStack setTag(ItemStack stack, CompoundTag tag) {
+        if (stack.isEmpty()) return stack;
+
+        // Decode the CompoundTag back into an ItemStack
+        var result = ItemStack.CODEC.decode(NbtOps.INSTANCE, tag);
+        return result.result().get().getFirst();
+    }    *///?} else if >=1.21 {
     /*public static ItemStack setTag(ItemStack stack, CompoundTag tag) {
         if (stack.isEmpty()) return stack;
 
@@ -56,25 +73,29 @@ public class CompatItemStack {
     public static boolean hasTag(ItemStack stack) {
         //? if > 1.21 {
         /*return true;
-         *///?} else {
+        *///?} else {
         return stack.hasTag();
-        //?}
+         //?}
     }
 
     public static CompoundTag getOrCreateTag(ItemStack stack) {
-        //? if >=1.21 {
+        //? if >=1.21.10 {
+        /*return getTag(stack);
+        *///?} else if >=1.21 {
         /*return (CompoundTag) stack.save(HolderLookup.Provider.create(Stream.empty()), new CompoundTag());
          *///?} else {
         return stack.getOrCreateTag();
-        //?}
+         //?}
     }
 
     public static CompoundTag save(ItemStack stack, CompoundTag tag, Level level) {
-        //? if >=1.21 {
+        //? if >=1.21.10 {
+        /*return getTag(stack);
+        *///?} else if >=1.21 {
         /*return (CompoundTag) stack.save(level.registryAccess());
          *///?} else {
         return stack.save(tag);
-        //?}
+         //?}
     }
 
     //? if >=1.21 {

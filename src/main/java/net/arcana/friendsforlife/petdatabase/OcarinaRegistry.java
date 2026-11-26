@@ -1,27 +1,44 @@
 package net.arcana.friendsforlife.petdatabase;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.Unpooled;
 import net.arcana.friendsforlife.Net;
+import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.packets.OcarinaUpdatePacket;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.SavedData;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
+//? if >=1.21.10 {
+/*import net.minecraft.world.level.saveddata.SavedDataType;
+*///?}
 
 import java.util.*;
 
 public class OcarinaRegistry extends SavedData {
 
     public static final UUID EMPTY_UUID = new UUID(0L, 0L);
+    public static final String KEY = "friendsforlife_ocarina_registry";
 
     // ocarinaUuid -> petUuid
     private final Map<UUID, UUID> ocarinaToPet = new HashMap<>();
 
     public static OcarinaRegistry get(MinecraftServer server) {
-        return SavedData.get(server, "friendsforlife_ocarina_registry",
+        //? if >=1.21.10 {
+
+        /*return SavedData.get(server, TYPE);
+        *///?} else {
+    
+
+        return SavedData.get(server, KEY,
                 OcarinaRegistry::fromNbt, OcarinaRegistry::new);
+     
+        //?}
     }
 
     public OcarinaRegistry() {
@@ -31,16 +48,23 @@ public class OcarinaRegistry extends SavedData {
         return ocarinaToPet;
     }
 
+
+    //? if >=1.21.10 {
+    /*private static final SavedDataType<OcarinaRegistry> TYPE = SavedData.nbtType(KEY, OcarinaRegistry::new, OcarinaRegistry::fromNbt);
+    *///?}
+
     // ----------- LOADING ----------
     public static OcarinaRegistry fromNbt(CompoundTag tag) {
         OcarinaRegistry reg = new OcarinaRegistry();
 
-        ListTag list = tag.getList("entries", Tag.TAG_COMPOUND);
+        ListTag list = CompatNbt.getCompoundList(tag, "entries");
         for (Tag e : list) {
             CompoundTag c = (CompoundTag) e;
-            UUID ocarina = c.getUUID("ocarina");
-            UUID pet = c.getUUID("pet");
-            reg.ocarinaToPet.put(ocarina, pet);
+            UUID ocarina = CompatNbt.getUUID(c, "ocarina");
+            UUID pet = CompatNbt.getUUID(c, "pet");
+            if (ocarina != null && pet != null) {
+                reg.ocarinaToPet.put(ocarina, pet);
+            }
         }
 
         return reg;
@@ -53,8 +77,8 @@ public class OcarinaRegistry extends SavedData {
 
         for (var entry : ocarinaToPet.entrySet()) {
             CompoundTag c = new CompoundTag();
-            c.putUUID("ocarina", entry.getKey());
-            c.putUUID("pet", entry.getValue());
+            CompatNbt.putUUID(c, "ocarina", entry.getKey());
+            CompatNbt.putUUID(c, "pet", entry.getValue());
             list.add(c);
         }
 

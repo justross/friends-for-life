@@ -61,10 +61,15 @@ modstitch {
     loom {
         // It's not recommended to store the Fabric Loader version in properties.
         // Make sure it's up to date.
-        fabricLoaderVersion = "0.16.10"
+        fabricLoaderVersion = "0.17.1"
 
         // Configure loom like normal in this block.
         configureLoom {
+            if (property("deps.minecraft") == "1.21.10") {
+                accessWidenerPath.set(
+                    file("src/main/resources/friendsforlife.accesswidener")
+                )
+            }
             runs {
                 maybeCreate("client").apply {
                     property("fabric.development", "true")
@@ -135,7 +140,7 @@ dependencies {
         modstitchModImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api_version")}")
 
         modstitchModImplementation("io.wispforest:owo-lib:${property("deps.owo_version")}")
-        modstitchModImplementation("com.terraformersmc:modmenu:${property("deps.modmenu_version")}")
+//        modstitchModImplementation("com.terraformersmc:modmenu:${property("deps.modmenu_version")}")
         annotationProcessor("io.wispforest:owo-lib:${property("deps.owo_version")}")
     }
 
@@ -146,4 +151,12 @@ dependencies {
     }
 
     // Anything else in the dependencies block will be used for all platforms.
+}
+
+// ModDevGradle 2.0.74 (pinned by Modstitch 0.5.12) ships NeoFormRuntime 1.0.13, which can't build
+// NeoForge 1.21.10's Minecraft artifacts. Targets that need a newer one set deps.neoform_runtime.
+findProperty("deps.neoform_runtime")?.let { nfrtVersion ->
+    plugins.withId("net.neoforged.moddev") {
+        extensions.getByType<net.neoforged.nfrtgradle.NeoFormRuntimeExtension>().version.set(nfrtVersion.toString())
+    }
 }

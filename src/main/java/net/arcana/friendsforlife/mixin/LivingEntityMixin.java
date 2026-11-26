@@ -25,6 +25,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Objects;
 
+//? if >=1.21.10 {
+/*import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+*///?}
+
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
     @Unique
@@ -51,15 +58,15 @@ public abstract class LivingEntityMixin {
         ((Player) Objects.requireNonNull(oldTame.getOwner())).displayClientMessage(Component.translatable("message.friendsforlife.pet_retreated", self.getName()), true);
 
         // Teleport pet home if downed
-        Objects.requireNonNull(self.getServer()).execute(() -> {
-            PetData pd = PetTracker.get(self.getServer()).get(pet.friendsforlife_getUuid());
+        Objects.requireNonNull(self.level().getServer()).execute(() -> {
+            PetData pd = PetTracker.get(self.level().getServer()).get(pet.friendsforlife_getUuid());
             assert pd != null;
 
-            HomeBlock hb = HomeBlock.get(self.getServer());
+            HomeBlock hb = HomeBlock.get(self.level().getServer());
             assert hb != null;
 
             // Determine home block
-            var home = hb.getHome(self.getServer(), pd.ownerUuid);
+            var home = hb.getHome(self.level().getServer(), pd.ownerUuid);
             assert home != null;
 
             var homePos = pd.homePosition;
@@ -70,10 +77,10 @@ public abstract class LivingEntityMixin {
             }
 
             pet.friendsforlife_setDowned(true);
-            pd.setDowned(self.getServer());
+            pd.setDowned(self.level().getServer());
 
 
-            var livingEntity = pd.recreateEntity(self.getServer(), homeDim, homePos.getX(), homePos.getY(), homePos.getZ(), self);
+            var livingEntity = pd.recreateEntity(self.level().getServer(), homeDim, homePos.getX(), homePos.getY(), homePos.getZ(), self);
             if (livingEntity instanceof TamableAnimal tame) {
                 TameableWanderHelper.makeTameableWander(tame);
             }
@@ -104,12 +111,45 @@ public abstract class LivingEntityMixin {
         }
     }
 
+    //? if >=1.21.10 {
+    /*@Inject(method = "hurtServer", at = @At("HEAD"), cancellable = true)
+    private void friendsforlife$preventDeath(ServerLevel level, DamageSource source, float f, CallbackInfoReturnable<Boolean> cir) {
+        if (friendsforlife$tryPreventDeath(source, f)) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    // Saddles are an equipment slot since 1.21.5 (AbstractHorse#equipSaddle is gone), so snapshot here.
+    // tickCount > 0 skips equipment set while the entity is still loading.
+    @Inject(method = "setItemSlot", at = @At("TAIL"))
+    private void friendsforlife$onSaddleChanged(EquipmentSlot slot, ItemStack stack, CallbackInfo ci) {
+        LivingEntity self = (LivingEntity) (Object) this;
+        if (slot != EquipmentSlot.SADDLE || !(self instanceof AbstractHorse) || self.tickCount == 0) {
+            return;
+        }
+        MinecraftServer server = self.level().getServer();
+        if (server == null) {
+            return;
+        }
+        PetData pd = PetTracker.get(server).getByEntityId(self.getUUID());
+        if (pd != null) {
+            pd.updateEntityData(server, self);
+        }
+    }
+    *///?} else {
     @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
-    private void friendsforlife$preventDeath(
-            DamageSource source,
-            float f,
-            CallbackInfoReturnable<Boolean> cir
-    ) {
+    private void friendsforlife$preventDeath(DamageSource source, float f, CallbackInfoReturnable<Boolean> cir) {
+        if (friendsforlife$tryPreventDeath(source, f)) {
+            cir.setReturnValue(false);
+        }
+    }
+    //?}
+
+    /**
+     * Downs a guardian pet instead of letting it die. Returns true if the damage should be cancelled.
+     */
+    @Unique
+    private boolean friendsforlife$tryPreventDeath(DamageSource source, float f) {
         // Only apply to tameable pets
         LivingEntity self = (LivingEntity) (Object) this;
         if (self instanceof TamableAnimal) {
@@ -117,15 +157,16 @@ public abstract class LivingEntityMixin {
 
             if (pet != null && Objects.equals(pet.friendsforlife_getMode(), PetData.FollowMode.GUARDIAN) && !source.isCreativePlayer() && self.getHealth() - f <= 0) {
                 setDowned();
-                cir.setReturnValue(false);
+                return true;
             }
         } else if (self instanceof AbstractHorse) {
             TrackableEntityDecorator pet = (self instanceof TrackableEntityDecorator ted) ? ted : null;
 
             if (pet != null && Objects.equals(pet.friendsforlife_getMode(), PetData.FollowMode.GUARDIAN) && !source.isCreativePlayer() && self.getHealth() - f <= 0) {
                 setDowned();
-                cir.setReturnValue(false);
+                return true;
             }
         }
+        return false;
     }
 }

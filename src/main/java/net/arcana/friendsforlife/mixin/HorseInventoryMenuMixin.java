@@ -25,12 +25,12 @@ public class HorseInventoryMenuMixin {
         if (server != null) {
             PetData trackedPetData = PetTracker.get(server).get(((TrackableEntityDecorator) horse).friendsforlife_getUuid());
             if (trackedPetData != null) {
-                trackedPetData.updateEntityData(server, horse::saveWithoutId);
+                trackedPetData.updateEntityData(server, horse);
             }
         }
     }
     @Inject(method = "removed", at = @At("TAIL"))
     private void friendsforlife$syncHorseData(Player player, CallbackInfo ci) {
-        updateEntityData(horse.getServer());
+        updateEntityData(horse.level().getServer());
     }
 }

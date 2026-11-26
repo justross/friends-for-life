@@ -2,7 +2,7 @@ package net.arcana.friendsforlife;
 
 import io.wispforest.owo.network.OwoNetChannel;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
-import net.arcana.friendsforlife.homeblock.HomeBlock.HomeBlockHandle;
+import net.arcana.friendsforlife.homeblock.HomeBlock.HomeEntry;
 import net.arcana.friendsforlife.packets.*;
 import net.arcana.friendsforlife.petdatabase.OcarinaRegistry;
 import net.arcana.friendsforlife.petdatabase.PetData;
@@ -34,8 +34,8 @@ public class Net {
             ServerPlayer player = handler.player();
 
             // Get the persistent HomeBlock instance for this world
-            HomeBlock homes = HomeBlock.get(Objects.requireNonNull(player.getServer()));
-            HomeBlockHandle hbh = homes.getHome(player.getServer(), player.getUUID());
+            HomeBlock homes = HomeBlock.get(Objects.requireNonNull(player.level().getServer()));
+            HomeEntry hbh = homes.getHome(player.level().getServer(), player.getUUID());
 
             if (hbh != null) {
                 // Send it back to the client
@@ -47,7 +47,7 @@ public class Net {
         // Send client pet list
         Net.CHANNEL.registerServerbound(PetListRequestPacket.class, (message, access) -> {
             ServerPlayer player = access.player();
-            Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.getServer()));
+            Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.level().getServer()));
         });
 
         // Send client ocarina registry
@@ -116,17 +116,17 @@ public class Net {
 
         // Update PetData mode
         Net.CHANNEL.registerServerbound(SetPetModePacket.class, (packet, handler) -> {
-            PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().getServer())).get(packet.uuid());
+            PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().level().getServer())).get(packet.uuid());
             if (pd != null) {
                 var mode = PetData.FollowMode.fromId(packet.mode());
-                mode = pd.trySetMode(mode, handler.player().getServer());
-                Net.CHANNEL.serverHandle(handler.player().getServer()).send(new PetModeUpdatePacket(packet.uuid(), mode.id));
+                mode = pd.trySetMode(mode, handler.player().level().getServer());
+                Net.CHANNEL.serverHandle(handler.player().level().getServer()).send(new PetModeUpdatePacket(packet.uuid(), mode.id));
             }
         });
 
         // Set individual pet home block
         Net.CHANNEL.registerServerbound(HomeSetRequestPacket.class, (packet, handler) -> {
-            PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().getServer())).get(packet.uuid());
+            PetData pd = PetTracker.get(Objects.requireNonNull(handler.player().level().getServer())).get(packet.uuid());
             if (pd != null) {
                 pd.homePosition = packet.homeSetRequestPos();
                 pd.homeDimension = ResourceKey.create(Registries.DIMENSION, packet.dimId());
@@ -135,13 +135,13 @@ public class Net {
 
         // Set default home block
         Net.CHANNEL.registerServerbound(DefaultSetHomeRequestPacket.class, (packet, handler) -> {
-            HomeBlock.get(Objects.requireNonNull(handler.player().getServer())).setHome(handler.player(), packet.defaultSetHomeRequestPos(),
+            HomeBlock.get(Objects.requireNonNull(handler.player().level().getServer())).setHome(handler.player(), packet.defaultSetHomeRequestPos(),
                     ResourceKey.create(Registries.DIMENSION, packet.dimId()));
         });
 
         /* Update client with new home position if respawn point changes and home is not set */
         Net.CHANNEL.registerServerbound(RespawnUpdatePacket.class, (packet, handler) -> {
-            if (!HomeBlock.get(Objects.requireNonNull(handler.player().getServer())).hasHome(handler.player().getUUID())) {
+            if (!HomeBlock.get(Objects.requireNonNull(handler.player().level().getServer())).hasHome(handler.player().getUUID())) {
 
                 Net.CHANNEL.serverHandle(handler.player()).send(new HomeUpdatePacket(packet.respawnUpdatePos(), packet.dimId()));
             }

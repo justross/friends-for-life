@@ -32,7 +32,7 @@ public abstract class MobEntityMixin implements MobEntityAccessor {
         if (server == null)
             return;
 
-        PetData trackedPetData = PetTracker.get(server).get(((Mob) (Object) this).getUUID());
+        PetData trackedPetData = PetTracker.get(server).getByEntityId(((Mob) (Object) this).getUUID());
         if (trackedPetData != null) {
             cir.setReturnValue(false);
         }

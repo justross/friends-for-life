@@ -5,10 +5,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.arcana.friendsforlife.util.CompatComponent;
+import net.arcana.friendsforlife.util.CompatNbt;
 import net.arcana.friendsforlife.util.CompatResourceLocation;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -57,11 +59,10 @@ public class Commands {
                     pets.append(name)
                             .append(": ");
                 } else if (nbt != null) {
-
-                    // customName
-                    String name = nbt.contains("CustomName")
-                            ? Objects.requireNonNull(CompatComponent.fromJson(nbt.getString("CustomName"))).getString()
-                            : BuiltInRegistries.ENTITY_TYPE.get(new CompatResourceLocation(nbt.getString("id")).unwrap()).getDescription().getString();
+                    String customName = CompatNbt.getCustomName(nbt);
+                    String name = customName != null
+                            ? customName
+                            : CompatNbt.entityType(CompatNbt.getString(nbt, "id")).getDescription().getString();
 
                     pets.append(name)
                             .append(": ");

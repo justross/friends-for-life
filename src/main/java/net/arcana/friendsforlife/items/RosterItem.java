@@ -2,6 +2,7 @@ package net.arcana.friendsforlife.items;
 
 import net.arcana.friendsforlife.RaycastHelper;
 import net.arcana.friendsforlife.client.RosterScreen;
+import net.arcana.friendsforlife.client.util.KeyHelper;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.util.Item;
 //? if fabric {
@@ -19,7 +20,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -30,7 +30,9 @@ import net.neoforged.api.distmarker.OnlyIn;
 *///?}
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
+import javax.swing.plaf.basic.BasicTreeUI;
 import java.util.List;
 
 public class RosterItem extends Item {
@@ -38,17 +40,16 @@ public class RosterItem extends Item {
         super(settings);
     }
 
-    @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(Level world, @NotNull Player player, @NotNull InteractionHand hand) {
+    protected boolean compatUse(Level world, @NotNull Player player, @NotNull InteractionHand hand) {
         // Only open screen on the client side
-        if (world.isClientSide) {
+        if (world.isClientSide()) {
             if (!player.isShiftKeyDown()) {
                 openRosterScreen();
                 player.playSound(SoundEvents.BOOK_PAGE_TURN, 1.0F, 1.0F);
             }
         }
 
-        if (!world.isClientSide) {
+        if (!world.isClientSide()) {
             // If sneak is held down set home block position
             if (player.isShiftKeyDown()) {
                 ResourceKey<Level> dim = player.level().dimension();
@@ -59,20 +60,29 @@ public class RosterItem extends Item {
                 player.displayClientMessage(Component.translatable("message.friendsforlife.default_home_set"), true);
             }
         }
-        return InteractionResultHolder.success(player.getItemInHand(hand));
+        return true;
     }
 
-    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
-    /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
+    /*? if fabric {*/
+    @Environment(EnvType.CLIENT)
+            /*?}*/
+            /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     private void openRosterScreen() {
         Minecraft.getInstance().setScreen(new RosterScreen());
     }
 
     @Override
-    /*? if fabric {*/ @Environment(EnvType.CLIENT) /*?}*/
-    /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
+            /*? if fabric {*/
+    @Environment(EnvType.CLIENT)
+            /*?}*/
+            /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     protected void compatAppendHoverText(ItemStack stack, List<Component> tooltip, TooltipFlag tooltipFlag) {
-        if (Screen.hasShiftDown()) {
+        //? if >=1.21.10 {
+        /*boolean isShiftDown = KeyHelper.isShiftDown();
+        *///?} else {
+        boolean isShiftDown = Screen.hasShiftDown();
+        //?}
+        if (isShiftDown) {
             List<FormattedCharSequence> lines = Tooltip.splitTooltip(
                     Minecraft.getInstance(),
                     Component.translatable("tooltip.friendsforlife.roster.info"));

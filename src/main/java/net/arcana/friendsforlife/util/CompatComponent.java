@@ -1,7 +1,16 @@
 package net.arcana.friendsforlife.util;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
+//? if >=1.21 {
+/*import net.minecraft.network.chat.ComponentSerialization;
+*///?}
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +23,9 @@ public class CompatComponent {
      */
     @Nullable
     public static MutableComponent fromJson(String string, @Nullable HolderLookup.Provider provider) {
-        //? if >=1.21 {
+        //? if >=1.21.10 {
+        /*return string == null ? null : ComponentSerialization.CODEC.decode(JsonOps.INSTANCE, new Gson().fromJson(string, JsonElement.class)).getOrThrow().getFirst().copy();
+        *///?} else if >=1.21 {
         /*if (provider == null) {
             MinecraftServer server = ServerContext.getServer();
             provider = server.registryAccess();
@@ -29,7 +40,9 @@ public class CompatComponent {
      * Version-neutral serialization to JSON string
      */
     public static String toJson(Component component, @Nullable HolderLookup.Provider provider) {
-        //? if >=1.21 {
+        //? if >=1.21.10 {
+        /*return ComponentSerialization.CODEC.encodeStart(JsonOps.INSTANCE, component).getOrThrow().toString();
+        *///?} else if >=1.21 {
         /*if (provider == null) {
             MinecraftServer server = ServerContext.getServer();
             provider = server.registryAccess();

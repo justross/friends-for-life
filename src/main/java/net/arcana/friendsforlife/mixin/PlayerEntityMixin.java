@@ -6,25 +6,29 @@ import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-import java.util.UUID;
-
+/**
+ * Shoulder access before 1.21.9, where the shoulder setters live on Player.
+ * From 1.21.9 they are declared on ServerPlayer, so ServerPlayerEntityMixin provides ShoulderAccessor instead.
+ */
 @Mixin(Player.class)
-public abstract class PlayerEntityMixin implements ShoulderAccessor {
+public abstract class PlayerEntityMixin
+        //? if <1.21.10
+        implements ShoulderAccessor
+{
+    //? if <1.21.10 {
+    @Shadow
+    protected abstract void setShoulderEntityLeft(CompoundTag nbt);
 
-    @Shadow public abstract CompoundTag getShoulderEntityLeft();
-    @Shadow public abstract CompoundTag getShoulderEntityRight();
-    @Shadow protected abstract void setShoulderEntityLeft(CompoundTag nbt);
-    @Shadow protected abstract void setShoulderEntityRight(CompoundTag nbt);
+    @Shadow
+    protected abstract void setShoulderEntityRight(CompoundTag nbt);
 
     @Override
-    public void friendsforlife_clearShoulder(UUID petUUID) {
-        if (!getShoulderEntityLeft().isEmpty() && getShoulderEntityLeft().hasUUID("UUID") &&
-            getShoulderEntityLeft().getUUID("UUID").equals(petUUID)) {
+    public void friendsforlife_clearShoulder(boolean isLeft) {
+        if (isLeft) {
             setShoulderEntityLeft(new CompoundTag());
-        }
-        if (!getShoulderEntityRight().isEmpty() && getShoulderEntityRight().hasUUID("UUID") &&
-            getShoulderEntityRight().getUUID("UUID").equals(petUUID)) {
+        } else {
             setShoulderEntityRight(new CompoundTag());
         }
     }
+    //?}
 }

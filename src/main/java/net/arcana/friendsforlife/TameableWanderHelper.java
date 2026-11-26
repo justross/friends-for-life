@@ -16,7 +16,7 @@ public class TameableWanderHelper {
      * Does not permanently change tamed status.
      */
     public static void makeTameableWander(TamableAnimal entity) {
-        if (entity == null || entity.level().isClientSide)
+        if (entity == null || entity.level().isClientSide())
             return;
 
         entity.setOrderedToSit(false);

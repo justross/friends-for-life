@@ -18,6 +18,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Objects;
 import java.util.UUID;
 
+//? if >=1.21.10 {
+/*import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+*///?}
+
 @Mixin(TamableAnimal.class)
 public abstract class TamableAnimalMixin implements TameableEntityDecorator {
     @Unique
@@ -105,6 +111,20 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
         this.friendsforlife_forceWander = false;
     }
 
+    //? if >=1.21.10 {
+    /*@Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
+    private void writeStateToNbt(ValueOutput output, CallbackInfo ci) {
+        output.putBoolean(FORCE_WANDER, this.friendsforlife_isForceWander());
+        // UUIDUtil.CODEC writes the same int array as the pre-1.21.5 putUUID, so old saves still load
+        output.store(PET_UUID, UUIDUtil.CODEC, this.friendsforlife_getUuid());
+        if (this.friendsforlife_mode != null) {
+            output.putInt(FOLLOW_MODE, this.friendsforlife_mode.id);
+        }
+        output.putBoolean(IS_DOWNED, this.friendsforlife_getDowned());
+    }
+    *///?} else {
+
+
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void writeStateToNbt(CompoundTag nbt, CallbackInfo ci) {
         nbt.putBoolean(FORCE_WANDER, this.friendsforlife_isForceWander());
@@ -114,6 +134,20 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
         }
         nbt.putBoolean(IS_DOWNED, this.friendsforlife_getDowned());
     }
+ 
+    //?}
+
+
+    //? if >=1.21.10 {
+    /*@Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
+    private void readStateFromNbt(ValueInput input, CallbackInfo ci) {
+        this.friendsforlife_setForceWander(input.getBooleanOr(FORCE_WANDER, false));
+        input.read(PET_UUID, UUIDUtil.CODEC).ifPresent(this::friendsforlife_setUuid);
+        input.getInt(FOLLOW_MODE).ifPresent(id -> this.friendsforlife_setMode(PetData.FollowMode.fromId(id)));
+        this.friendsforlife_setDowned(input.getBooleanOr(IS_DOWNED, false));
+    }
+    *///?} else {
+   
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
     private void readStateFromNbt(CompoundTag nbt, CallbackInfo ci) {
@@ -133,5 +167,7 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
             this.friendsforlife_setDowned(isDowned);
         }
     }
+    
+    //?}
 
 }

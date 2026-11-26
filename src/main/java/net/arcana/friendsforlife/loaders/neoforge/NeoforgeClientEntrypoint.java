@@ -24,11 +24,21 @@ public class NeoforgeClientEntrypoint {
 
     @SubscribeEvent
     public static void onRegisterKeys(RegisterKeyMappingsEvent event) {
+        //? if >=1.21.10 {
+        /^openBookKey = new KeyMapping(
+                "key.friendsforlife.open_book",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_P,
+                Init.FRIENDS_FOR_LIFE);
+        event.registerCategory(Init.FRIENDS_FOR_LIFE);
+        ^///?} else {
         openBookKey = new KeyMapping(
                 "key.friendsforlife.open_book",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_P,
                 "category.friendsforlife.keys");
+        //?}
+        event.register(openBookKey);
     }
 
     @SubscribeEvent
@@ -55,6 +65,12 @@ public class NeoforgeClientEntrypoint {
         ClientEventHandler.handleClientDisconnect();
     }
 
+    //? if >=1.21.10 {
+    /^@SubscribeEvent
+    public static void onRenderAfterEntities(RenderLevelStageEvent.AfterEntities event) {
+        HomeBlockRenderer.render(event.getPoseStack(), Minecraft.getInstance().gameRenderer.getMainCamera());
+    }
+    ^///?} else {
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
@@ -65,6 +81,7 @@ public class NeoforgeClientEntrypoint {
         Camera camera = event.getCamera();
         HomeBlockRenderer.render(matrices, camera);
     }
+    //?}
 
 }
 *///?}

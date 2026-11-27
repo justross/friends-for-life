@@ -158,9 +158,11 @@ dependencies {
     }
 
     modstitch.moddevgradle {
-        modstitchModImplementation("io.wispforest:owo-lib-neoforge:${property("deps.owo_version")}")
-        modstitchModImplementation("org.sinytra.forgified-fabric-api:fabric-api-base:0.4.42+e0539096d1")
-        // modstitchModImplementation("org.sinytra.forgified-fabric-api:fabric-api-base:0.4.42+d1308dedd1")
+        // owo-lib's POM lists a Forgified Fabric API build that isn't published anywhere; owo-lib's jar embeds it
+        // anyway, and this mod's NeoForge code doesn't use Fabric API, so leave it out
+        modstitchModImplementation("io.wispforest:owo-lib-neoforge:${property("deps.owo_version")}") {
+            exclude(group = "org.sinytra.forgified-fabric-api")
+        }
     }
 
     // Anything else in the dependencies block will be used for all platforms.
@@ -256,7 +258,14 @@ configure<me.modmuss50.mpp.ModPublishExtension> {
         projectId.set(modrinthId)
         accessToken.set(modrinthToken)
         minecraftVersions.addAll(publishMcVersions)
-        requires("owo-lib")
+        // Pinned to the owo-lib build this jar is built and smoke-tested against (deps.owo_version), as in 1.3.x:
+        // owo-lib builds only work with matching builds of the mod. The plugin looks the version number up on Modrinth.
+        // NeoForge needs nothing else: owo-lib's NeoForge builds embed Forgified Fabric API, and this mod's NeoForge
+        // code doesn't use Fabric API. On Fabric, the mod and owo-lib both use Fabric API (any version for the game).
+        requires {
+            slug.set("owo-lib")
+            version.set(property("deps.owo_version") as String)
+        }
         if (loader == "fabric") requires("fabric-api")
     }
 
@@ -300,44 +309,45 @@ tasks.matching { it.name in publishRequirements }.configureEach {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Forge 1.20.1 through Sinytra Connector, which runs this Fabric jar on Forge (1.20.1-fabric only).
-//   ./gradlew runForgeConnector   (registered in stonecutter.gradle.kts, works whichever version is active)
-// Builds the jar, installs it with Connector, Forgified Fabric API and owo-lib into a Prism Launcher instance
-// (created if missing), and launches it with a debugger listening on localhost:5005.
-// Optional overrides (e.g. in ~/.gradle/gradle.properties): connector.prism (launcher command),
-// connector.prism_data (Prism data folder), connector.instance (instance folder name), connector.debug_port.
+// Prism Launcher instances: play-test the built jar as players install it, with a debugger attached.
+//   ./gradlew runForgeConnector    Forge 1.20.1 through Sinytra Connector (the 1.20.1 Fabric jar)
+//   ./gradlew runNeoForgePrism     NeoForge 1.21.1 and 1.21.10, with only owo-lib from Modrinth
+// (registered in stonecutter.gradle.kts, they work whichever version is active). Each builds the jar, installs it
+// and its dependencies into a Prism instance (created if missing) and launches it.
+// Debugger ports: Forge Connector 5005, NeoForge 1.21.1 5006, NeoForge 1.21.10 5007, so they can run at the same time.
+// Optional overrides (e.g. in ~/.gradle/gradle.properties): prism.command (launcher command), prism.data (Prism data
+// folder), prism.debug_port_<forgeConnector|neoForgePrism> (per target, in its versions/*/gradle.properties).
 // ---------------------------------------------------------------------------------------------
-prop("connector.forge") { forgeVersion ->
-    // The maven.modrinth artifacts come from the Modrinth repository that Modstitch already adds
-    val connectorMods = configurations.create("connectorMods") {
-        isTransitive = false
-        isCanBeConsumed = false
-    }
-    (property("connector.mods") as String).split(",").forEach { dependencies.add(connectorMods.name, it.trim()) }
-
+fun registerPrismInstance(
+    taskPrefix: String,
+    label: String,
+    instanceName: String,
+    loaderComponent: String,
+    mods: Configuration,
+    defaultDebugPort: Int,
+) {
     val home = System.getProperty("user.home")
-    val prismData = file((findProperty("connector.prism_data") as String?) ?: "$home/.local/share/PrismLauncher")
-    val instanceName = (findProperty("connector.instance") as String?) ?: "FFL Forge 1.20.1 Connector"
+    val prismData = file((findProperty("prism.data") as String?) ?: "$home/.local/share/PrismLauncher")
     // Prism's instance folder is configurable (Settings > Launcher > Folders); relative paths are inside its data folder
     val prismInstances = prismData.resolve("prismlauncher.cfg").takeIf { it.isFile }?.readLines()
         ?.firstOrNull { it.startsWith("InstanceDir=") }?.substringAfter("=")?.trim()?.takeIf { it.isNotEmpty() }
         ?.let { prismData.resolve(it) } ?: prismData.resolve("instances")
     val instanceDir = prismInstances.resolve(instanceName)
-    val debugPort = (findProperty("connector.debug_port") as String?) ?: "5005"
+    val debugPort = (findProperty("prism.debug_port_$taskPrefix") as String?) ?: defaultDebugPort.toString()
     val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=$debugPort"
     val modJar = modstitch.finalJarTask.flatMap { it.archiveFile }
 
-    val prepare = tasks.register("forgeConnectorPrepare") {
+    val prepare = tasks.register("${taskPrefix}Prepare") {
         group = "friendsforlife"
-        description = "Installs this jar and the Connector stack into the Forge 1.20.1 Prism instance"
+        description = "Installs this jar and its dependencies into the $label Prism instance"
         dependsOn(modstitch.finalJarTask)
-        inputs.files(connectorMods)
+        inputs.files(mods)
         doLast {
             val jar = modJar.get().asFile
             if (ZipFile(jar).use { it.getEntry("net/arcana/friendsforlife/Init.class") == null }) throw GradleException(
-                "${jar.name} contains no mod classes. Use ./gradlew runForgeConnector, or make ${project.name} the active Stonecutter version first."
+                "${jar.name} contains no mod classes. Use the chiseled task (e.g. ./gradlew runForgeConnector), or make ${project.name} the active Stonecutter version first."
             )
-            val mods = instanceDir.resolve(".minecraft/mods").apply { mkdirs() }
+            val modsDir = instanceDir.resolve(".minecraft/mods").apply { mkdirs() }
 
             // Prism settings: created once (Prism edits the file afterwards), debug args kept in place
             val cfg = instanceDir.resolve("instance.cfg")
@@ -349,7 +359,7 @@ prop("connector.forge") { forgeVersion ->
                     InstanceType=OneSix
                     name=$instanceName
                     iconKey=default
-                    notes=Managed by ./gradlew runForgeConnector in Friends For Life. Mods are replaced on each run.
+                    notes=Managed by Friends For Life's Gradle build. Its mods are replaced on each run.
                     """.trimIndent() + "\n"
                 )
             }
@@ -360,7 +370,7 @@ prop("connector.forge") { forgeVersion ->
                 {
                     "components": [
                         { "uid": "net.minecraft", "version": "$minecraft", "important": true },
-                        { "uid": "net.minecraftforge", "version": "$forgeVersion" }
+                        $loaderComponent
                     ],
                     "formatVersion": 1
                 }
@@ -368,33 +378,59 @@ prop("connector.forge") { forgeVersion ->
             )
 
             // Replace the jars installed last time; mods added to the folder by hand are left alone
-            val installed = mods.resolve(".friendsforlife-installed")
-            if (installed.exists()) installed.readLines().forEach { mods.resolve(it).delete() }
-            val jars = connectorMods.files + jar
-            jars.forEach { it.copyTo(mods.resolve(it.name), overwrite = true) }
+            val installed = modsDir.resolve(".friendsforlife-installed")
+            if (installed.exists()) installed.readLines().forEach { modsDir.resolve(it).delete() }
+            val jars = mods.files + jar
+            jars.forEach { it.copyTo(modsDir.resolve(it.name), overwrite = true) }
             installed.writeText(jars.joinToString("\n") { it.name } + "\n")
-            logger.lifecycle("Installed into ${mods.path}:\n  " + jars.joinToString("\n  ") { it.name })
+            logger.lifecycle("Installed into ${modsDir.path}:\n  " + jars.joinToString("\n  ") { it.name })
         }
     }
 
-    tasks.register("forgeConnectorLaunch") {
+    tasks.register("${taskPrefix}Launch") {
         group = "friendsforlife"
-        description = "Launches Friends For Life on Forge $minecraft through Sinytra Connector (Prism Launcher)"
+        description = "Launches Friends For Life on $label (Prism Launcher)"
         dependsOn(prepare)
         doLast {
-            val prism = (findProperty("connector.prism") as String?)?.split(" ")
+            val prism = (findProperty("prism.command") as String?)?.split(" ")
                 ?: System.getenv("PATH").orEmpty().split(File.pathSeparator)
                     .map { File(it, "prismlauncher") }.firstOrNull { it.canExecute() }?.let { listOf(it.path) }
                 ?: File("$home/Applications").listFiles()
                     ?.firstOrNull { it.name.startsWith("PrismLauncher") && it.name.endsWith(".AppImage") }?.let { listOf(it.path) }
-                ?: throw GradleException("Prism Launcher not found. Set connector.prism in ~/.gradle/gradle.properties.")
-            val log = layout.buildDirectory.file("connector/prism.log").get().asFile.apply { parentFile.mkdirs() }
+                ?: throw GradleException("Prism Launcher not found. Set prism.command in ~/.gradle/gradle.properties.")
+            val log = layout.buildDirectory.file("prism/$taskPrefix.log").get().asFile.apply { parentFile.mkdirs() }
             ProcessBuilder(prism + listOf("--launch", instanceName))
                 .redirectErrorStream(true).redirectOutput(log).start()
+            // A launch sent while Prism is still starting from the previous one is dropped (runNeoForgePrism launches two)
+            Thread.sleep(10_000)
             logger.lifecycle("Launching '$instanceName' through Prism (output: ${log.path}).")
-            logger.lifecycle("Attach a debugger to localhost:$debugPort, e.g. IDEA's 'Attach to Forge 1.20.1 (Connector)'.")
+            logger.lifecycle("Attach a debugger to localhost:$debugPort, e.g. IDEA's 'Attach to $label'.")
         }
     }
+}
+
+// Forge 1.20.1 through Sinytra Connector, which runs this Fabric jar on Forge (1.20.1-fabric only)
+prop("connector.forge") { forgeVersion ->
+    // The maven.modrinth artifacts come from the Modrinth repository that Modstitch already adds
+    val connectorMods = configurations.create("connectorMods") {
+        isTransitive = false
+        isCanBeConsumed = false
+    }
+    (property("connector.mods") as String).split(",").forEach { dependencies.add(connectorMods.name, it.trim()) }
+    registerPrismInstance("forgeConnector", "Forge $minecraft through Sinytra Connector",
+        "FFL Forge 1.20.1 Connector", """{ "uid": "net.minecraftforge", "version": "$forgeVersion" }""", connectorMods, 5005)
+}
+
+// NeoForge, with owo-lib downloaded from Modrinth by the same version number the Modrinth listing requires
+if (loader == "neoforge") {
+    val neoforgeMods = configurations.create("neoforgePrismMods") {
+        isTransitive = false
+        isCanBeConsumed = false
+    }
+    dependencies.add(neoforgeMods.name, "maven.modrinth:owo-lib:${property("deps.owo_version")}")
+    registerPrismInstance("neoForgePrism", "NeoForge $minecraft", "FFL NeoForge $minecraft",
+        """{ "uid": "net.neoforged", "version": "${property("deps.neoforge")}" }""", neoforgeMods,
+        if (minecraft == "1.21.1") 5006 else 5007)
 }
 
 // ---------------------------------------------------------------------------------------------

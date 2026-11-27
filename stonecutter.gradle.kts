@@ -1,7 +1,7 @@
 plugins {
     id("dev.kikugie.stonecutter")
 }
-stonecutter active "1.20.1-fabric"
+stonecutter active "1.21.1-neoforge"
 
 stonecutter registerChiseled tasks.register("chiseledBuild", stonecutter.chiseled) { 
     group = "project"
@@ -30,6 +30,13 @@ stonecutter registerChiseled tasks.register("runForgeConnector", stonecutter.chi
     group = "friendsforlife"
     versions { _, version -> version.project == "1.20.1-fabric" }
     ofTask("forgeConnectorLaunch")
+}
+
+// Runs the NeoForge 1.21.1 and 1.21.10 jars in Prism Launcher instances, with only owo-lib. See build.gradle.kts.
+stonecutter registerChiseled tasks.register("runNeoForgePrism", stonecutter.chiseled) {
+    group = "friendsforlife"
+    versions { _, version -> version.project.endsWith("-neoforge") }
+    ofTask("neoForgePrismLaunch")
 }
 
 allprojects {

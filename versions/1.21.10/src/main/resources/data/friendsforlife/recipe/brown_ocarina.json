@@ -7,7 +7,10 @@
     "   "
   ],
   "key": {
-    "T": { "item": "minecraft:brown_terracotta" }
+    "T": "minecraft:brown_terracotta"
   },
-  "result": { "count": 1, "id": "friendsforlife:brown_ocarina" }
+  "result": {
+    "count": 1,
+    "id": "friendsforlife:brown_ocarina"
+  }
 }

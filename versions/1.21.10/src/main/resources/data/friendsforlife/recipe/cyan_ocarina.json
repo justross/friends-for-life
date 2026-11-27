@@ -7,7 +7,10 @@
     "   "
   ],
   "key": {
-    "T": { "item": "minecraft:cyan_terracotta" }
+    "T": "minecraft:cyan_terracotta"
   },
-  "result": { "count": 1, "id": "friendsforlife:cyan_ocarina" }
+  "result": {
+    "count": 1,
+    "id": "friendsforlife:cyan_ocarina"
+  }
 }

@@ -29,8 +29,8 @@ public class NeoforgeClientEntrypoint {
                 "key.friendsforlife.open_book",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_P,
-                Init.FRIENDS_FOR_LIFE);
-        event.registerCategory(Init.FRIENDS_FOR_LIFE);
+                Keybinds.CATEGORY);
+        event.registerCategory(Keybinds.CATEGORY);
         ^///?} else {
         openBookKey = new KeyMapping(
                 "key.friendsforlife.open_book",

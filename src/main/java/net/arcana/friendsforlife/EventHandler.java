@@ -7,6 +7,8 @@ import net.arcana.friendsforlife.items.OcarinaItem;
 import net.arcana.friendsforlife.petdatabase.PetData;
 import net.arcana.friendsforlife.petdatabase.PetTracker;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Set;
@@ -122,36 +125,107 @@ public class EventHandler {
         }
     }
 
-    public static void handleEntityLoad(Entity entity, ServerLevel world) {
+    /**
+     * @param canCancel whether the caller can stop the entity from being added (NeoForge's EntityJoinLevelEvent). If not
+     *                  (Fabric, which reports entities once they are already tracked), unwanted entities are discarded
+     *                  next tick instead.
+     * @return true if the caller should cancel adding the entity
+     */
+    public static boolean handleEntityLoad(Entity entity, ServerLevel world, boolean canCancel) {
+        MinecraftServer server = world.getServer();
+        PetTracker tracker = PetTracker.get(server);
+
+        // Remove entities that have been recreated elsewhere, or left over from an untracked pet
+        if (tracker.getRecreatedEntityMap().remove(entity.getUUID())) {
+            tracker.setDirty();
+            return removeLoadedEntity(server, entity, canCancel);
+        }
 
         if (entity instanceof TrackableEntityDecorator trackable) {
             UUID uuid = trackable.friendsforlife_getUuid();
-            PetTracker tracker = PetTracker.get(world.getServer());
-            if (uuid != null) {
-
-                // Remove entities that have been duplicated and marked as such
-                Set<UUID> recreatedSet = tracker.getRecreatedEntityMap();
-
-                if (recreatedSet.remove(entity.getUUID())) {
+            PetData pd = uuid != null ? tracker.get(uuid) : null;
+            if (pd != null) {
+                int generation = trackable.friendsforlife_getGeneration();
+                if (generation < pd.generation) {
+                    // Saved before the pet was last summoned: a leftover copy, whatever its entity UUID
+                    Init.LOGGER.info("Removing an old copy of pet {} owned by {} (summon {} of {})", pd.uuid,
+                            pd.OwnerName, generation, pd.generation);
+                    return removeLoadedEntity(server, entity, canCancel);
+                }
+                if (generation > pd.generation) {
+                    // The pet data is older than the entity (e.g. the pet data wasn't saved before a crash)
+                    pd.generation = generation;
                     tracker.setDirty();
-                    world.getServer().execute(entity::discard); // run next tick
                 }
-            }
-            // Set attributes for new entity in case it doesn't have one yet
-            else {
-                PetData pd = tracker.get(uuid);
-                if (pd != null) {
-                    // entityUuid may be null if PetData was deserialized
-                    if (pd.entityUuid == null) {
-                        pd.entityUuid = ((Entity) trackable).getUUID();
+                if (!entity.getUUID().equals(pd.entityUuid)) {
+                    Entity known = pd.entityUuid != null ? findLoadedEntity(server, pd.entityUuid) : null;
+                    if (known == null) {
+                        // The pet under a new entity UUID (another mod rebuilt or copied it), or the entity UUID
+                        // wasn't known yet (saves from before 1.4.0)
+                        pd.entityUuid = entity.getUUID();
+                        tracker.setDirty();
+                    } else {
+                        // Another loaded copy is the pet as far as we know. Mods that rebuild entities (e.g. Via
+                        // Romana) add the new copy before discarding the old one, so decide once that has happened.
+                        TaskScheduler.schedule(() -> resolveSameSummonCopies(server, pd, known, entity), 2);
                     }
-                    pd.trySetMode(pd.mode, (Entity) trackable);
-
-                    trackable.friendsforlife_setDowned(pd.isDowned);
                 }
-
+                pd.trySetMode(pd.mode, entity);
+                trackable.friendsforlife_setDowned(pd.isDowned);
+            }
+        } else {
+            // A tracked pet's entity that isn't a pet anymore e.g. a pig that 1.3.x recreated a pet as
+            PetData pd = tracker.getByEntityId(entity.getUUID());
+            if (pd != null) {
+                Init.LOGGER.warn("Untracking pet {} owned by {} and removing its leftover {}", pd.uuid, pd.OwnerName,
+                        BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()));
+                tracker.untrack(server, pd);
+                return removeLoadedEntity(server, entity, canCancel);
             }
         }
+        return false;
+    }
+
+    /**
+     * Two copies of a pet from the same summon are loaded: {@code known} (the pet's recorded entity) and
+     * {@code newcomer}. If the known copy has gone by now, the newcomer replaced it and becomes the pet; otherwise the
+     * newcomer is a duplicate.
+     */
+    private static void resolveSameSummonCopies(MinecraftServer server, PetData pd, Entity known, Entity newcomer) {
+        PetTracker tracker = PetTracker.get(server);
+        if (tracker.get(pd.uuid) != pd || newcomer.isRemoved()) {
+            return; // untracked or resummoned meanwhile, or the newcomer is gone anyway
+        }
+        if (known.isRemoved()) {
+            pd.entityUuid = newcomer.getUUID();
+            tracker.setDirty();
+        } else if (!newcomer.getUUID().equals(pd.entityUuid)) {
+            Init.LOGGER.warn("Removing a duplicate of pet {} owned by {} ({} at {})", pd.uuid, pd.OwnerName,
+                    newcomer.getUUID(), newcomer.blockPosition().toShortString());
+            newcomer.discard();
+        }
+    }
+
+    @Nullable
+    private static Entity findLoadedEntity(MinecraftServer server, UUID entityUuid) {
+        for (ServerLevel level : server.getAllLevels()) {
+            Entity entity = level.getEntity(entityUuid);
+            if (entity != null && !entity.isRemoved()) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    private static boolean removeLoadedEntity(MinecraftServer server, Entity entity, boolean canCancel) {
+        if (canCancel) {
+            // Not added at all. Discarding it instead would leave a ghost on clients: the entity isn't tracked yet
+            // at this point, so when tracking starts the client is sent an already-removed entity and never told
+            // it's gone.
+            return true;
+        }
+        server.execute(entity::discard); // next tick, after it has been sent to clients, so they get the removal
+        return false;
     }
 
     // Snapshot entity to PetData NBT when unloaded

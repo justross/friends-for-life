@@ -68,6 +68,19 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
     }
 
     @Unique
+    private int friendsforlife_generation = 0;
+
+    @Override
+    public int friendsforlife_getGeneration() {
+        return friendsforlife_generation;
+    }
+
+    @Override
+    public void friendsforlife_setGeneration(int generation) {
+        this.friendsforlife_generation = generation;
+    }
+
+    @Unique
     @Nullable
     private PetData.FollowMode friendsforlife_mode;
 
@@ -117,6 +130,7 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
         output.putBoolean(FORCE_WANDER, this.friendsforlife_isForceWander());
         // UUIDUtil.CODEC writes the same int array as the pre-1.21.5 putUUID, so old saves still load
         output.store(PET_UUID, UUIDUtil.CODEC, this.friendsforlife_getUuid());
+        output.putInt(PetData.GENERATION_KEY, this.friendsforlife_generation);
         if (this.friendsforlife_mode != null) {
             output.putInt(FOLLOW_MODE, this.friendsforlife_mode.id);
         }
@@ -129,6 +143,7 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
     private void writeStateToNbt(CompoundTag nbt, CallbackInfo ci) {
         nbt.putBoolean(FORCE_WANDER, this.friendsforlife_isForceWander());
         nbt.putUUID(PET_UUID, this.friendsforlife_getUuid());
+        nbt.putInt(PetData.GENERATION_KEY, this.friendsforlife_generation);
         if (this.friendsforlife_mode != null) {
             nbt.putInt(FOLLOW_MODE, this.friendsforlife_mode.id);
         }
@@ -143,6 +158,7 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
     private void readStateFromNbt(ValueInput input, CallbackInfo ci) {
         this.friendsforlife_setForceWander(input.getBooleanOr(FORCE_WANDER, false));
         input.read(PET_UUID, UUIDUtil.CODEC).ifPresent(this::friendsforlife_setUuid);
+        this.friendsforlife_generation = input.getIntOr(PetData.GENERATION_KEY, 0);
         input.getInt(FOLLOW_MODE).ifPresent(id -> this.friendsforlife_setMode(PetData.FollowMode.fromId(id)));
         this.friendsforlife_setDowned(input.getBooleanOr(IS_DOWNED, false));
     }
@@ -158,6 +174,7 @@ public abstract class TamableAnimalMixin implements TameableEntityDecorator {
             UUID entityUuid = nbt.getUUID(PET_UUID);
             this.friendsforlife_setUuid(entityUuid);
         }
+        this.friendsforlife_generation = nbt.getInt(PetData.GENERATION_KEY); // 0 if missing
         if (nbt.contains(FOLLOW_MODE)) {
             PetData.FollowMode mode = PetData.FollowMode.fromId(nbt.getInt(FOLLOW_MODE));
             this.friendsforlife_setMode(mode);

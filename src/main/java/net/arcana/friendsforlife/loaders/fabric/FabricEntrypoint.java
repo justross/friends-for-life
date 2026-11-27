@@ -74,7 +74,7 @@ public class FabricEntrypoint implements ModInitializer {
         // Helper to provide server context for classes
         ServerLifecycleEvents.SERVER_STARTED.register(ServerContext::setServer);
 
-        ServerEntityEvents.ENTITY_LOAD.register(EventHandler::handleEntityLoad);
+        ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> EventHandler.handleEntityLoad(entity, level, false));
 
         // Snapshot entity to PetData NBT when unloaded
         ServerEntityEvents.ENTITY_UNLOAD.register(EventHandler::handleEntityUnload);

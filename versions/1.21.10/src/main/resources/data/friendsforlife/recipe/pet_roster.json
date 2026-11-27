@@ -1,12 +1,8 @@
 {
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-    {
-      "item": "minecraft:book"
-    },
-    {
-      "item": "minecraft:gold_ingot"
-    }
+    "minecraft:book",
+    "minecraft:gold_ingot"
   ],
   "result": {
     "count": 1,

@@ -17,16 +17,14 @@ import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-@EventBusSubscriber(modid = Init.MOD_ID, value = Dist.DEDICATED_SERVER)
+// Registered on the game bus by NeoforgeEntrypoint, on both sides (see ModBusHandler for why it isn't annotated)
 public class CommonBusHandler {
     // cause dogs are annoying and return from a interaction early, we have to
     // overwrite nbt methods
@@ -58,7 +56,9 @@ public class CommonBusHandler {
             return;
         }
         var entity = event.getEntity();
-        EventHandler.handleEntityLoad(entity, serverLevel);
+        if (EventHandler.handleEntityLoad(entity, serverLevel, true)) {
+            event.setCanceled(true);
+        }
     }
 
     // Snapshot entity to PetData NBT when unloaded

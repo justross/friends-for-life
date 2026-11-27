@@ -31,7 +31,7 @@ public class FabricClientEntrypoint implements ClientModInitializer {
                 "key.friendsforlife.open_book",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_P,
-                Init.FRIENDS_FOR_LIFE
+                Keybinds.CATEGORY
         ));
         *///?} else {
                     openBookKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(

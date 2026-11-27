@@ -66,6 +66,13 @@ public class PetData {
      */
     @Nullable
     public UUID entityUuid;
+    /**
+     * Counts the pet's summons. Each summon stamps the new copy with the new count (in the entity's NBT under
+     * {@link #GENERATION_KEY}), so any copy that loads with a lower count is a leftover from before a summon, whatever
+     * its entity UUID. Copies made by other mods keep the stamp and are still recognised as the pet.
+     */
+    public int generation = 0;
+    public static final String GENERATION_KEY = "FriendsForLifeGeneration";
     public BlockPos position;
     public CompoundTag collar;
     public final UUID ownerUuid;
@@ -93,9 +100,48 @@ public class PetData {
 
     public boolean canEntityFight() {
         assert this.entityData != null;
-        EntityType<?> type = CompatNbt.entityType(CompatNbt.getString(this.entityData, "id"));
+        EntityType<?> type = getEntityType();
 
-        return !type.is(Tags.PET_ALWAYS_PASSIVE);
+        return type == null || !type.is(Tags.PET_ALWAYS_PASSIVE);
+    }
+
+    /**
+     * The pet's entity type id. Snapshots taken by versions before 1.4.0 used Entity#save, which writes
+     * nothing (not even "id") when the entity is riding something or has been removed, e.g. by a mod
+     * that replaces the wild mob with a tamed one. "EntityType" is written separately at tame time, so
+     * it is the fallback.
+     */
+    public String getEntityTypeId() {
+        if (entityData == null) {
+            return "";
+        }
+        String id = CompatNbt.getString(entityData, "id");
+        return id.isEmpty() ? CompatNbt.getString(entityData, "EntityType") : id;
+    }
+
+    @Nullable
+    public EntityType<?> getEntityType() {
+        return CompatNbt.entityTypeOrNull(getEntityTypeId());
+    }
+
+    /**
+     * Why this pet's saved data can't be used to recreate it, or null if it can.
+     */
+    @Nullable
+    public String getBrokenReason() {
+        if (entityData == null) {
+            return "it has no saved entity data";
+        }
+        if (getEntityType() == null) {
+            return "its entity type '" + getEntityTypeId() + "' is unknown";
+        }
+        // 1.3.x saved pets that were riding something without an "id". Summoning one recreated it as a pig
+        // and replaced the saved data with the pig's spawn data, which has no "Pos". A snapshot of a live pet
+        // always has "Pos", so such pets can still be repaired from the real entity; these can't.
+        if (!entityData.contains("id") && !entityData.contains("Pos")) {
+            return "it was turned into a pig by an earlier version";
+        }
+        return null;
     }
 
     /**
@@ -136,6 +182,8 @@ public class PetData {
     public PetData(Entity entity, Entity player, CompoundTag collarItem, long tameDate) {
         this.uuid = ((TrackableEntityDecorator) entity).friendsforlife_getUuid(); // Separate UUID from entity for tracking purposes
         this.entityUuid = entity.getUUID();
+        // A pet that was collared before keeps its count, so its earlier copies are still recognised as old
+        this.generation = ((TrackableEntityDecorator) entity).friendsforlife_getGeneration();
         this.position = entity.blockPosition();
         this.OwnerName = player.getScoreboardName();
         this.ownerUuid = player.getUUID();
@@ -196,7 +244,7 @@ public class PetData {
     public Entry toEntry() {
         return Entry.of(
                 this.uuid,
-                CompatNbt.getString(this.getEntityData(), "id"),
+                getEntityTypeId(),
                 this.getEntityData(),
                 this.position.toShortString(),
                 this.homePosition != null ? this.homePosition.asLong() : 0L,
@@ -216,6 +264,11 @@ public class PetData {
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
         CompatNbt.putUUID(tag, "FriendsForLifeEntityUUID", uuid);
+        // Saved so that a second copy from the same summon can be recognised as a duplicate (see generation)
+        if (entityUuid != null) {
+            CompatNbt.putUUID(tag, "EntityUUID", entityUuid);
+        }
+        tag.putInt("Generation", generation);
 
         CompatNbt.putUUID(tag, "OwnerUuid", ownerUuid);
         tag.putString("OwnerName", OwnerName);
@@ -274,20 +327,16 @@ public class PetData {
         }
         boolean isDowned = CompatNbt.getBoolean(tag, "IsDowned");
 
-        return new PetData(friendsforlife_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim,
+        PetData pd = new PetData(friendsforlife_uuid, pos, OwnerUuid, OwnerName, collarItem, tameDate, homePos, homeDim,
                 entityData, isDowned, mode);
+        pd.entityUuid = CompatNbt.getUUID(tag, "EntityUUID"); // null for saves from before 1.4.0, until the entity loads
+        pd.generation = CompatNbt.getInt(tag, "Generation"); // 0 for saves from before 1.4.0, like their entities
+        return pd;
     }
 
     public void updateEntityData(MinecraftServer server, Consumer<CompoundTag> editor) {
         if (entityData == null)
             return;
-        entityData.remove("SaddleItem");
-        //? if >=1.21.1 {
-        /*entityData.remove("body_armor_item");
-        *///?} else {
-        entityData.remove("ArmorItem");
-        entityData.remove("DecorItem");
-        //?}
         editor.accept(entityData);
 
         ServerPlayer player = server.getPlayerList().getPlayer(ownerUuid);
@@ -300,7 +349,25 @@ public class PetData {
      * Re-snapshots the entity's current state into the stored entity data.
      */
     public void updateEntityData(MinecraftServer server, Entity entity) {
-        updateEntityData(server, tag -> tag.merge(CompatNbt.saveEntityWithoutId(entity)));
+        String typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
+        String storedTypeId = getEntityTypeId();
+        if (!storedTypeId.isEmpty() && !storedTypeId.equals(typeId)) {
+            // The entity isn't the pet any more (e.g. it was recreated as a pig before 1.4.0). Saving it
+            // would overwrite the pet's real data, which is still enough to recreate it correctly.
+            Init.LOGGER.warn("Not saving pet {}: entity is {} but the pet is {}", uuid, typeId, storedTypeId);
+            return;
+        }
+        updateEntityData(server, tag -> {
+            // Replace the snapshot rather than merging into it: anything the pet no longer has (a saddle, armor, a
+            // chest or another mod's cart, expired effects) would otherwise come back from the old snapshot on summon
+            for (String key : List.copyOf(CompatNbt.keys(tag))) {
+                tag.remove(key);
+            }
+            tag.merge(CompatNbt.saveEntityWithoutId(entity));
+            // Repairs snapshots that are missing their type id (see getEntityTypeId)
+            tag.putString("id", typeId);
+            tag.putString("EntityType", typeId);
+        });
     }
 
     @Nullable
@@ -359,6 +426,7 @@ public class PetData {
 
 
     public LivingEntity recreateEntity(MinecraftServer server, ResourceKey<Level> worldKey, int x, int y, int z, Entity entity) {
+        updateEntityData(server, entity); // rebuild from its current state, not the last snapshot
         entity.discard();
         return recreateEntity(server, worldKey, x, y, z, false);
     }
@@ -377,20 +445,31 @@ public class PetData {
         if (server == null || entityData == null)
             return null;
 
-        String typeId = CompatNbt.getString(entityData, "id");
-        EntityType<?> type = CompatNbt.entityType(typeId);
+        String typeId = getEntityTypeId();
+        if (CompatNbt.getString(entityData, "id").isEmpty()) {
+            Init.LOGGER.warn("Pet {} has no saved entity id (snapshot from before 1.4.0); recreating it as '{}'", uuid, typeId);
+        }
+        EntityType<?> type = CompatNbt.entityTypeOrNull(typeId);
+        if (type == null) {
+            // Spawning CompatNbt.entityType(typeId) here would fall back to the registry default and turn the pet into a pig
+            Init.LOGGER.error("Can't recreate pet {}: unknown entity type '{}'", uuid, typeId);
+            return null;
+        }
         UUID oldUuid = entityUuid;
 
         // Discard entity if it exists
         if (deleteEntity) {
-            getEntity(server).thenAccept(pdh -> {
-                if (pdh != null && pdh.entity() != null) {
-                    pdh.entity().discard();
-                } else {
-                    PetTracker pt = PetTracker.get(server);
-                    pt.getRecreatedEntityMap().add(oldUuid); // Mark for deletion
-                }
-            });
+            Entity current = getEntity(server).join().entity();
+            if (current != null) {
+                // Rebuild from its current state, not the last snapshot (which only updates on unload or rename),
+                // or e.g. armor sheared off since then would come back
+                updateEntityData(server, current);
+                current.discard();
+            } else if (oldUuid != null) {
+                // Not needed since the summon count (see generation), which also catches copies whose entity UUID
+                // changed; kept as a fallback
+                PetTracker.get(server).getRecreatedEntityMap().add(oldUuid);
+            }
         }
 
         Entity entity = CompatNbt.createEntity(type, server.getLevel(worldKey));
@@ -420,9 +499,14 @@ public class PetData {
         //?}
 
         CompoundTag nbtCopy = entityData.copy();
+        nbtCopy.putString("id", typeId);
 
         entityUuid = UUID.randomUUID();
         CompatNbt.putUUID(nbtCopy, "UUID", entityUuid);
+        // Every copy saved before this summon now has a lower count and is removed when it loads
+        generation++;
+        nbtCopy.putInt(GENERATION_KEY, generation);
+        PetTracker.get(server).setDirty();
         nbtCopy.remove("Pos");
         nbtCopy.remove("Motion");
         nbtCopy.remove("Rotation");
@@ -507,6 +591,7 @@ public class PetData {
         // Compare type
         String shoulderId = CompatNbt.getString(shoulderNbt, "id");
         String savedId = CompatNbt.getString(savedEntityData, "id");
+        if (savedId.isEmpty()) savedId = CompatNbt.getString(savedEntityData, "EntityType");
         if (!shoulderId.equals(savedId))
             return false;
 

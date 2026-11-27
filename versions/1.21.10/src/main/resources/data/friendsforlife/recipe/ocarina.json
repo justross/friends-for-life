@@ -7,9 +7,7 @@
     "   "
   ],
   "key": {
-    "T": {
-      "item": "minecraft:terracotta"
-    }
+    "T": "minecraft:terracotta"
   },
   "result": {
     "count": 1,

@@ -7,14 +7,13 @@ import net.arcana.friendsforlife.Sounds;
 import net.arcana.friendsforlife.components.Components;
 import net.arcana.friendsforlife.items.Items;
 import net.minecraft.core.registries.Registries;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
-@EventBusSubscriber(modid = Init.MOD_ID, value = Dist.DEDICATED_SERVER)
+// Registered on the mod bus by NeoforgeEntrypoint, on both sides. Don't also annotate it with @EventBusSubscriber:
+// since NeoForge 21.9 that registers it a second time and every item, sound and component is registered twice.
 public class ModBusHandler {
 
     @SubscribeEvent

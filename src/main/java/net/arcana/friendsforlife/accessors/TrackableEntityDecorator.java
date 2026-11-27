@@ -13,4 +13,10 @@ public interface TrackableEntityDecorator {
 
     UUID friendsforlife_getUuid();
     void friendsforlife_setUuid(UUID uuid);
+
+    /**
+     * Which summon of the pet this copy is (see {@link net.arcana.friendsforlife.petdatabase.PetData#generation}).
+     */
+    int friendsforlife_getGeneration();
+    void friendsforlife_setGeneration(int generation);
 }

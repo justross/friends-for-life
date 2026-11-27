@@ -1,12 +1,8 @@
 {
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-    {
-      "item": "minecraft:leather"
-    },
-    {
-      "item": "minecraft:gold_ingot"
-    }
+    "minecraft:leather",
+    "minecraft:gold_ingot"
   ],
   "result": {
     "count": 1,

@@ -50,38 +50,29 @@ public class Items {
     //?}
 
     public static void registerAll(BiConsumer<ResourceLocation, Item> registrar) {
-//        for (DyeColor color : DyeColor.values()) {
-//            String name = color.getName() + "_" + OCARINA_ID;
-//
-//            //? if >=1.21.10 {
-//            Item item = Items.register(name, Item::new, new Item.Properties());
-//            //? } else {
-//            /*
-//
-//            Item item = new OcarinaItem(ItemSettings.create().stacksTo(1));
-//             */
-//            //? }
-//            registrar.accept(id(name), item);
-//            COLORED_OCARINAS.put(color, item);
-//        }
+        for (DyeColor color : DyeColor.values()) {
+            String name = color.getName() + "_" + OCARINA_ID;
+            //? if >=1.21.10 {
+            /*Item item = Items.register(name, OcarinaItem::new, new Item.Properties().stacksTo(1));
+            *///?} else {
+            Item item = register(registrar, name, new OcarinaItem(ItemSettings.create().stacksTo(1)));
+            //?}
+            COLORED_OCARINAS.put(color, item);
+        }
 
         //? if >=1.21.10 {
-        /*COLLAR = Items.register(COLLAR_ID, CollarItem::new, new Item.Properties());
-        ROSTER = Items.register(ROSTER_ID, RosterItem::new, new Item.Properties());
-        OCARINA = Items.register(OCARINA_ID, OcarinaItem::new, new Item.Properties());
+        /*COLLAR = Items.register(COLLAR_ID, CollarItem::new, new Item.Properties().stacksTo(1));
+        ROSTER = Items.register(ROSTER_ID, RosterItem::new, new Item.Properties().stacksTo(1));
+        OCARINA = Items.register(OCARINA_ID, OcarinaItem::new, new Item.Properties().stacksTo(1));
         *///?} else {
-       
-
-        COLLAR = register(registrar, "collar",
+        COLLAR = register(registrar, COLLAR_ID,
                 new CollarItem(ItemSettings.create().stacksTo(1)));
-        ROSTER = register(registrar, "pet_roster",
+        ROSTER = register(registrar, ROSTER_ID,
                 new RosterItem(ItemSettings.create().stacksTo(1)));
-        OCARINA = register(registrar, "ocarina",
+        OCARINA = register(registrar, OCARINA_ID,
                 new OcarinaItem(ItemSettings.create().stacksTo(1)));
-        
         //?}
     }
-
 
     private static ResourceLocation id(String name) {
         return new CompatResourceLocation(Init.MOD_ID, name).unwrap();

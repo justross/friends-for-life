@@ -143,6 +143,23 @@ public final class CompatNbt {
         //?}
     }
 
+    /**
+     * Looks up an entity type by id, or null if the id is empty, malformed or not registered
+     * (so callers don't silently get the registry default, pig).
+     */
+    @Nullable
+    public static EntityType<?> entityTypeOrNull(String id) {
+        if (id == null || id.isEmpty()) {
+            return null;
+        }
+        try {
+            var key = new CompatResourceLocation(id).unwrap();
+            return BuiltInRegistries.ENTITY_TYPE.containsKey(key) ? entityType(id) : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     @Nullable
     public static Entity createEntity(EntityType<?> type, Level level) {
         //? if >=1.21.10 {

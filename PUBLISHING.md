@@ -7,7 +7,8 @@
 ```
 
 Jars land in `versions/<target>/build/libs/friendsforlife-<version>+<target>.jar`
-(ignore the `-dev.jar` files in the Fabric targets).
+(ignore the `-dev.jar` files in the Fabric targets). Build through `chiseledBuild`: building a single target
+that isn't the active Stonecutter version produces an empty jar.
 
 ## One-time setup
 
@@ -40,8 +41,9 @@ Jars land in `versions/<target>/build/libs/friendsforlife-<version>+<target>.jar
    Uploads go out as **beta** by default. Override with `-Ppublish.release_type=release` (or `alpha`),
    or change `publish.release_type` in `gradle.properties`.
 
-To publish a single target, run e.g. `./gradlew :1.21.10-neoforge:publishMods`. To publish to one site,
-run e.g. `./gradlew :1.21.10-neoforge:publishModrinth`.
+To publish a single target (e.g. `./gradlew :1.21.10-neoforge:publishMods`, or `publishModrinth` for one site),
+first make it the active Stonecutter version ("Set active project to ..."). A target that isn't active builds
+an empty jar on its own; the upload tasks check for this and refuse. `chiseledPublish` always builds correctly.
 
 If an ID or token is missing, the upload task fails before anything is sent.
 

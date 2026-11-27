@@ -68,6 +68,19 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
     }
 
     @Unique
+    private int friendsforlife_generation = 0;
+
+    @Override
+    public int friendsforlife_getGeneration() {
+        return friendsforlife_generation;
+    }
+
+    @Override
+    public void friendsforlife_setGeneration(int generation) {
+        this.friendsforlife_generation = generation;
+    }
+
+    @Unique
     @Nullable
     private PetData.FollowMode friendsforlife_mode;
 
@@ -132,12 +145,14 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
     private void writeStateToNbt(ValueOutput output, CallbackInfo ci) {
         // UUIDUtil.CODEC writes the same int array as the pre-1.21.5 putUUID, so old saves still load
         output.store(PET_UUID, UUIDUtil.CODEC, this.friendsforlife_getUuid());
+        output.putInt(PetData.GENERATION_KEY, this.friendsforlife_generation);
         output.putBoolean(IS_DOWNED, this.friendsforlife_getDowned());
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
     private void readStateFromNbt(ValueInput input, CallbackInfo ci) {
         input.read(PET_UUID, UUIDUtil.CODEC).ifPresent(this::friendsforlife_setUuid);
+        this.friendsforlife_generation = input.getIntOr(PetData.GENERATION_KEY, 0);
         input.getInt(FOLLOW_MODE).ifPresent(id -> this.friendsforlife_setMode(PetData.FollowMode.fromId(id)));
         this.friendsforlife_setDowned(input.getBooleanOr(IS_DOWNED, false));
     }
@@ -145,6 +160,7 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void writeStateToNbt(CompoundTag nbt, CallbackInfo ci) {
         nbt.putUUID(PET_UUID, this.friendsforlife_getUuid());
+        nbt.putInt(PetData.GENERATION_KEY, this.friendsforlife_generation);
         nbt.putBoolean(IS_DOWNED, this.friendsforlife_getDowned());
     }
 
@@ -154,6 +170,7 @@ public abstract class AbstractHorseMixin implements TrackableEntityDecorator {
             UUID entityUuid = nbt.getUUID(PET_UUID);
             this.friendsforlife_setUuid(entityUuid);
         }
+        this.friendsforlife_generation = nbt.getInt(PetData.GENERATION_KEY); // 0 if missing
         if (nbt.contains(FOLLOW_MODE)) {
             PetData.FollowMode mode = PetData.FollowMode.fromId(nbt.getInt(FOLLOW_MODE));
             this.friendsforlife_setMode(mode);

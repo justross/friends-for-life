@@ -1,7 +1,7 @@
 package net.arcana.friendsforlife.items;
 
 import net.arcana.friendsforlife.RaycastHelper;
-import net.arcana.friendsforlife.client.RosterScreen;
+import net.arcana.friendsforlife.client.ClientActions;
 import net.arcana.friendsforlife.client.util.KeyHelper;
 import net.arcana.friendsforlife.homeblock.HomeBlock;
 import net.arcana.friendsforlife.util.Item;
@@ -68,7 +68,7 @@ public class RosterItem extends Item {
             /*?}*/
             /*? if neoforge {*/ /*@OnlyIn(Dist.CLIENT) *//*?}*/
     private void openRosterScreen() {
-        Minecraft.getInstance().setScreen(new RosterScreen());
+        ClientActions.openRosterScreen();
     }
 
     @Override

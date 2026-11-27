@@ -19,6 +19,7 @@
   "item.friendsforlife.red_ocarina": "Red Ocarina",
   "item.friendsforlife.black_ocarina": "Black Ocarina",
   "category.friendsforlife.keys": "Friends For Life",
+  "key.category.friendsforlife.controls": "Friends For Life",
   "key.friendsforlife.open_book": "Open Pet Roster",
   "itemgroup.friendsforlife": "Friends For Life",
   "message.friendsforlife.default_home_set": "Default home location set",

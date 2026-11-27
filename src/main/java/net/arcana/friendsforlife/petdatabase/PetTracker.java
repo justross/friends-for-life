@@ -25,11 +25,12 @@ import java.util.*;
 
 //? if >=1.21.10 {
 /*import net.minecraft.world.level.saveddata.SavedDataType;
-*///?}
+ *///?}
 
 public class PetTracker extends SavedData {
     private final Map<UUID, PetData> tracked = new HashMap<>();
     private final Set<UUID> recreated = new HashSet<>(); // Entities that have been recreated and must be removed
+    private boolean brokenPetsPurged = false;
 
     @Nullable
     public PetData addPet(Entity entity, ServerPlayer player, ItemStack item, long tameTimestamp) {
@@ -38,9 +39,9 @@ public class PetTracker extends SavedData {
             CompoundTag collar = new CompoundTag();
             //? if >=1.21 {
             /*collar = CompatItemStack.save(item, collar, player.level());
-            *///?} else {
+             *///?} else {
             CompatItemStack.save(item, collar, player.level());
-             //?}
+            //?}
             PetData pd = new PetData(entity, player, collar, tameTimestamp);
             tracked.put(pd.uuid, pd);
             Net.CHANNEL.serverHandle(player).send(PetTracker.toEntries(player.level().getServer()));
@@ -80,14 +81,46 @@ public class PetTracker extends SavedData {
 
     //? if >=1.21.10 {
     /*private static final SavedDataType<PetTracker> TYPE = SavedData.nbtType(KEY, PetTracker::new, PetTracker::fromNBT);
-    *///?}
+     *///?}
 
     public static PetTracker get(MinecraftServer server) {
         //? if >=1.21.10 {
-        /*return SavedData.get(server, TYPE);
-        *///?} else {
-        return SavedData.get(server, KEY, PetTracker::fromNBT, PetTracker::new);
+        /*PetTracker tracker = SavedData.get(server, TYPE);
+         *///?} else {
+        PetTracker tracker = SavedData.get(server, KEY, PetTracker::fromNBT, PetTracker::new);
         //?}
+        if (!tracker.brokenPetsPurged) {
+            tracker.brokenPetsPurged = true;
+            tracker.purgeBrokenPets(server);
+        }
+        return tracker;
+    }
+
+    /**
+     * Untracks pets whose saved data can't recreate them (see {@link PetData#getBrokenReason()}).
+     * Their leftover entity, if any, is marked to be removed when it next loads.
+     */
+    private void purgeBrokenPets(MinecraftServer server) {
+        for (PetData pd : List.copyOf(tracked.values())) {
+            String reason = pd.getBrokenReason();
+            if (reason == null) {
+                continue;
+            }
+            Init.LOGGER.warn("Untracking pet {} owned by {} because {}", pd.uuid, pd.OwnerName, reason);
+            untrack(server, pd);
+            if (pd.entityUuid != null) {
+                recreated.add(pd.entityUuid);
+            }
+        }
+    }
+
+    /**
+     * Removes a pet from tracking without touching its entity.
+     */
+    public void untrack(MinecraftServer server, PetData pd) {
+        tracked.remove(pd.uuid);
+        OcarinaRegistry.get(server).unregisterAllForPet(pd.uuid, server);
+        setDirty();
     }
 
     public PetData get(UUID uuid) {
